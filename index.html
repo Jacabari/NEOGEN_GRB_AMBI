@@ -921,41 +921,75 @@
           return;
         }
 
-        // Fetch from live database
-        const { data: list, error } = await supabaseInstance
-          .from('accounts')
-          .select('*')
-          .order('account_name', { ascending: true });
+        // Fetch accounts from live database with individual try-catch for extreme resilience
+        try {
+          const { data: list, error } = await supabaseInstance
+            .from('accounts')
+            .select('*')
+            .order('account_name', { ascending: true });
 
-        if (error) throw error;
-        accounts = list || [];
-
-        const { data: indList } = await supabaseInstance.from('indicator_testing').select('*');
-        allIndicators = indList || [];
-
-        const { data: pathList } = await supabaseInstance.from('pathogen_testing').select('*');
-        allPathogens = pathList || [];
-
-        const { data: hygList } = await supabaseInstance.from('hygiene_toxins_water').select('*');
-        allHygiene = hygList || [];
-
-        renderAccountsList();
-
-        // Select first account if present and none selected
-        if (accounts.length > 0 && !selectedAccountId) {
-          selectAccount(accounts[0].id);
-        } else if (accounts.length === 0) {
-          selectedAccountId = null;
-          updateWorkspaceVisibility();
-        } else {
-          selectAccount(selectedAccountId);
+          if (error) throw error;
+          accounts = list || [];
+        } catch (err) {
+          console.error("Supabase Error fetching accounts in loadAllData:", err);
+          showToast('Failed to fetch accounts: ' + err.message, 'error');
+          accounts = [];
         }
 
-        recalculateBIAnalytics();
+        // Fetch indicator_testing with individual try-catch
+        try {
+          const { data: indList, error: indError } = await supabaseInstance.from('indicator_testing').select('*');
+          if (indError) throw indError;
+          allIndicators = indList || [];
+        } catch (err) {
+          console.error("Supabase Error fetching indicator_testing in loadAllData:", err);
+          allIndicators = [];
+        }
+
+        // Fetch pathogen_testing with individual try-catch
+        try {
+          const { data: pathList, error: pathError } = await supabaseInstance.from('pathogen_testing').select('*');
+          if (pathError) throw pathError;
+          allPathogens = pathList || [];
+        } catch (err) {
+          console.error("Supabase Error fetching pathogen_testing in loadAllData:", err);
+          allPathogens = [];
+        }
+
+        // Fetch hygiene_toxins_water with individual try-catch
+        try {
+          const { data: hygList, error: hygError } = await supabaseInstance.from('hygiene_toxins_water').select('*');
+          if (hygError) throw hygError;
+          allHygiene = hygList || [];
+        } catch (err) {
+          console.error("Supabase Error fetching hygiene_toxins_water in loadAllData:", err);
+          allHygiene = [];
+        }
 
       } catch (e) {
-        console.error(e);
+        console.error("Critical error in loadAllData:", e);
         showToast('Error syncing with live database: ' + e.message, 'error');
+        accounts = accounts || [];
+        allIndicators = allIndicators || [];
+        allPathogens = allPathogens || [];
+        allHygiene = allHygiene || [];
+      } finally {
+        // Ensure UI render occurs even on total database/auth failure!
+        try {
+          renderAccountsList();
+
+          // Select first account if present and none selected
+          if (accounts && accounts.length > 0 && !selectedAccountId) {
+            selectAccount(accounts[0].id);
+          } else {
+            selectedAccountId = null;
+            updateWorkspaceVisibility();
+          }
+
+          recalculateBIAnalytics();
+        } catch (renderError) {
+          console.error("Error updating UI elements in loadAllData finally block:", renderError);
+        }
       }
     }
 
@@ -979,6 +1013,17 @@
     // Accounts rendering
     function renderAccountsList() {
       const container = document.getElementById('accounts-list-container');
+      if (!container) return;
+
+      if (!accounts || accounts.length === 0) {
+        container.innerHTML = `
+          <div class="p-4 text-center text-xs text-slate-400">
+            No accounts mapped yet.
+          </div>
+        `;
+        return;
+      }
+
       const query = document.getElementById('account-search-input').value.toLowerCase();
       
       const filtered = accounts.filter(acc => {
