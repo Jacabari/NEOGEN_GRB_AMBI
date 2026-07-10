@@ -1,13 +1,2110 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Neogen PH-GRB Food Safety Account Mapping & Business Intelligence</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neogen PH-GRB Food Safety Account Mapping & Business Intelligence</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind Theme Customization -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            spacebg: '#060b13',
+            panelbg: '#0d1527',
+            goldglow: '#f59e0b',
+          },
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #060b13;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #f59e0b;
+    }
+    /* Yellow editable cells highlight */
+    .editable-cell {
+      background-color: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      color: #fef08a;
+      transition: all 0.2s ease-in-out;
+    }
+    .editable-cell:hover {
+      background-color: rgba(245, 158, 11, 0.14);
+      border-color: rgba(245, 158, 11, 0.45);
+    }
+    .editable-cell:focus {
+      background-color: rgba(245, 158, 11, 0.2);
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+      outline: none;
+    }
+  </style>
+</head>
+<body class="bg-[#060b13] text-slate-100 flex flex-col min-h-screen">
+
+  <!-- 1. HEADER & GLOBAL BAR -->
+  <header class="sticky top-0 z-40 bg-[#0d1527]/95 border-b border-slate-800/80 backdrop-blur-md px-6 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="p-2 bg-gradient-to-tr from-amber-500 to-yellow-400 rounded-lg text-slate-950 shadow-md">
+        <i data-lucide="activity" class="h-6 w-6 stroke-[2.5]"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl font-bold tracking-tight text-white">Neogen PH-GRB</h1>
+          <span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 font-mono">Food Safety BI</span>
+        </div>
+        <p class="text-xs text-slate-400">Account Mapping & Saturation Tracking Tool (Collaborative Sandbox)</p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+      <!-- Database Settings Button -->
+      <button 
+        onclick="toggleDbSettingsDrawer(true)"
+        class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all duration-200 cursor-pointer bg-slate-900 border-slate-800 hover:border-yellow-500/40 text-slate-300"
+        id="db-status-badge"
+      >
+        <i data-lucide="database" class="h-3 w-3"></i>
+        <span>Database: <strong id="db-status-text" class="text-amber-400">Loading...</strong></span>
+        <i data-lucide="settings" class="h-3 w-3 ml-1"></i>
+      </button>
+
+      <!-- Collaborative Editor Profile Card -->
+      <div class="flex items-center gap-3 bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-1.5">
+        <div class="h-7 w-7 rounded-full bg-yellow-400/10 flex items-center justify-center border border-yellow-500/20 text-yellow-400 text-xs font-semibold shrink-0">
+          ✍
+        </div>
+        <div>
+          <input 
+            type="text"
+            id="user-full-name"
+            class="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-yellow-400 text-xs font-semibold text-slate-100 focus:outline-none w-32"
+            placeholder="Your Name"
+            title="Collaborative Editor Name"
+            onchange="saveCollaboratorProfile()"
+          />
+          <select
+            id="user-team-role"
+            class="bg-transparent text-[10px] text-slate-400 font-mono focus:outline-none block cursor-pointer hover:text-white"
+            title="Your Designation"
+            onchange="saveCollaboratorProfile()"
+          >
+            <option value="Key Account Manager [KAM]" class="bg-slate-950 text-slate-300">Key Account Manager [KAM]</option>
+            <option value="Regional Sales Manager [RSM]" class="bg-slate-950 text-slate-300">Regional Sales Manager [RSM]</option>
+            <option value="Technical Advisory Manager [TAM]" class="bg-slate-950 text-slate-300">Technical Advisory Manager [TAM]</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notification Banner -->
+  <div id="toast-container" class="fixed top-20 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <div class="flex-1 flex flex-col md:flex-row h-[calc(100vh-73px)] overflow-hidden">
+    
+    <!-- 2. LEFT SIDEBAR: ACCOUNTS & DEMOGRAPHICS FILTERING -->
+    <aside class="w-full md:w-80 bg-[#090e1b] border-r border-slate-800/80 flex flex-col shrink-0">
+      
+      <!-- Top Actions / Search -->
+      <div class="p-4 border-b border-slate-800/60 space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold tracking-wide uppercase text-slate-400">Mapped Accounts</h2>
+          <button 
+            onclick="startNewAccountFlow()"
+            class="p-1.5 bg-yellow-500 text-slate-950 rounded hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1 text-xs font-bold px-2.5"
+            title="Map New Food Safety Account"
+          >
+            <i data-lucide="plus" class="h-3 w-3"></i> Map New
+          </button>
+        </div>
+
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
+            <i data-lucide="search" class="h-4 w-4"></i>
+          </span>
+          <input 
+            type="text" 
+            id="account-search-input"
+            oninput="renderAccountsList()"
+            placeholder="Search accounts..." 
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-400/80"
+          />
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="grid grid-cols-2 gap-1.5 bg-slate-950 p-1 rounded-lg border border-slate-800/60">
+          <button 
+            onclick="setAccountFilter('all')" 
+            id="filter-all-btn"
+            class="text-[10px] font-medium py-1 rounded text-center transition-all bg-slate-850 text-white"
+          >
+            All Segments
+          </button>
+          <button 
+            onclick="setAccountFilter('my')" 
+            id="filter-my-btn"
+            class="text-[10px] font-medium py-1 rounded text-center transition-all text-slate-400 hover:text-white"
+          >
+            My Accounts
+          </button>
+        </div>
+      </div>
+
+      <!-- Accounts scrollable collection -->
+      <div class="flex-1 overflow-y-auto p-2 space-y-1.5" id="accounts-list-container">
+        <!-- Rendered dynamically -->
+        <div class="p-4 text-center text-xs text-slate-500">Loading mapped accounts...</div>
+      </div>
+
+      <!-- Footer Info -->
+      <div class="p-3 border-t border-slate-800/60 bg-slate-950/40 text-[10px] text-slate-500 flex items-center justify-between">
+        <span>Press Cells to Save Directly</span>
+        <span class="font-mono text-slate-600">v1.2.0-unlocked</span>
+      </div>
+    </aside>
+
+    <!-- 3. MAIN WORKSPACE / WORKPAD -->
+    <main class="flex-1 overflow-y-auto bg-spacebg flex flex-col p-6">
+
+      <!-- Dynamic Welcome / No Selection Card -->
+      <div id="no-selection-banner" class="flex-1 flex flex-col items-center justify-center text-center p-8 hidden">
+        <div class="p-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 rounded-full mb-4">
+          <i data-lucide="shield-alert" class="h-10 w-10"></i>
+        </div>
+        <h3 class="text-lg font-bold text-white">No Mapped Account Selected</h3>
+        <p class="text-slate-400 text-sm max-w-sm mt-1 mb-6">Select an account from the left sidebar to edit parameters, or create a brand new account mapping survey.</p>
+        <button 
+          onclick="startNewAccountFlow()"
+          class="bg-yellow-500 text-slate-950 font-bold px-4 py-2.5 rounded-lg hover:brightness-110 flex items-center gap-2 cursor-pointer transition-all"
+        >
+          <i data-lucide="plus-circle" class="h-4 w-4"></i> Map New Account Now
+        </button>
+      </div>
+
+      <!-- ACTIVE SURVEY WORKSPACE -->
+      <div id="active-workspace-area" class="space-y-6 flex flex-col h-full overflow-y-auto">
+        
+        <!-- BI STATS KPI GRID BANNER -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          <!-- KPI 1: Completion Rate -->
+          <div class="bg-[#0d1527] border border-slate-800/60 p-4 rounded-xl flex items-center gap-3.5 relative overflow-hidden group hover:border-slate-700 transition-all duration-200">
+            <div class="p-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+              <i data-lucide="check-square" class="h-5 w-5"></i>
+            </div>
+            <div>
+              <p class="text-[10px] text-slate-400 font-mono tracking-wider uppercase">Completion Rate</p>
+              <h3 class="text-xl font-bold text-white font-mono" id="kpi-completion-rate">0%</h3>
+              <div class="w-full bg-slate-950 h-1 rounded-full mt-1.5 overflow-hidden">
+                <div class="bg-indigo-500 h-full rounded-full transition-all duration-500" id="kpi-completion-progress" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 2: Est. Annual Value -->
+          <div class="bg-[#0d1527] border border-slate-800/60 p-4 rounded-xl flex items-center gap-3.5 relative overflow-hidden group hover:border-slate-700 transition-all duration-200">
+            <div class="p-2.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400">
+              <i data-lucide="coins" class="h-5 w-5"></i>
+            </div>
+            <div>
+              <p class="text-[10px] text-slate-400 font-mono tracking-wider uppercase">Est. Annual Value</p>
+              <h3 class="text-xl font-bold text-white font-mono" id="kpi-annual-value">₱0</h3>
+              <p class="text-[9px] text-slate-500 mt-0.5">Calculated Neogen potential</p>
+            </div>
+          </div>
+
+          <!-- KPI 3: Neogen Market Share -->
+          <div class="bg-[#0d1527] border border-slate-800/60 p-4 rounded-xl flex items-center gap-3.5 relative overflow-hidden group hover:border-slate-700 transition-all duration-200">
+            <div class="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+              <i data-lucide="pie-chart" class="h-5 w-5"></i>
+            </div>
+            <div>
+              <p class="text-[10px] text-slate-400 font-mono tracking-wider uppercase">Neogen Share</p>
+              <h3 class="text-xl font-bold text-emerald-400 font-mono" id="kpi-neogen-share">0%</h3>
+              <p class="text-[9px] text-slate-500 mt-0.5">Proprietary Volume saturation</p>
+            </div>
+          </div>
+
+          <!-- KPI 4: Competitor Capture -->
+          <div class="bg-[#0d1527] border border-slate-800/60 p-4 rounded-xl flex items-center gap-3.5 relative overflow-hidden group hover:border-slate-700 transition-all duration-200">
+            <div class="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400">
+              <i data-lucide="trending-up" class="h-5 w-5"></i>
+            </div>
+            <div>
+              <p class="text-[10px] text-slate-400 font-mono tracking-wider uppercase">Competitor Volume</p>
+              <h3 class="text-xl font-bold text-slate-200 font-mono" id="kpi-competitor-volume">0</h3>
+              <p class="text-[9px] text-slate-500 mt-0.5">Aggregated competitive capture</p>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ACTIVE ACCOUNT INFOBAR / HEADER -->
+        <section class="bg-[#0d1527] border border-slate-800/60 p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <h2 class="text-xl font-bold text-white tracking-tight" id="active-account-title">Selected Account Name</h2>
+              <span class="text-xs bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2 py-0.5 rounded font-medium" id="active-account-segment">Dairy</span>
+            </div>
+            <p class="text-xs text-slate-400 flex items-center gap-4">
+              <span>Parent Group: <strong class="text-white" id="active-account-parent">MVP</strong></span>
+              <span>•</span>
+              <span>Territory: <strong class="text-white" id="active-account-region">South Luzon</strong></span>
+            </p>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <div class="text-right text-xs">
+              <span class="block text-slate-500 font-mono">Assigned KAM/Personnel</span>
+              <strong class="text-slate-200" id="active-account-kam">Jared de Guzman</strong>
+            </div>
+            <button 
+              onclick="deleteActiveAccount()"
+              class="p-2 border border-rose-500/20 text-rose-400 bg-rose-500/5 rounded-lg hover:bg-rose-500 hover:text-white transition-all cursor-pointer"
+              title="Delete account records"
+            >
+              <i data-lucide="trash-2" class="h-4 w-4"></i>
+            </button>
+          </div>
+        </section>
+
+        <!-- SURVEY SEQUENCER / WIZARD TABS -->
+        <div class="bg-[#090e1b] p-1.5 rounded-xl border border-slate-800/60 grid grid-cols-4 gap-1">
+          <button 
+            onclick="setWizardStep(1)" 
+            id="step-tab-1"
+            class="text-xs font-semibold py-2.5 rounded-lg text-center transition-all cursor-pointer bg-slate-900 border border-slate-800 text-yellow-400 shadow-md"
+          >
+            1. Core Profile
+          </button>
+          <button 
+            onclick="setWizardStep(2)" 
+            id="step-tab-2"
+            class="text-xs font-semibold py-2.5 rounded-lg text-center transition-all cursor-pointer text-slate-400 hover:text-white"
+          >
+            2. Biological Indicators
+          </button>
+          <button 
+            onclick="setWizardStep(3)" 
+            id="step-tab-3"
+            class="text-xs font-semibold py-2.5 rounded-lg text-center transition-all cursor-pointer text-slate-400 hover:text-white"
+          >
+            3. Pathogen Parameters
+          </button>
+          <button 
+            onclick="setWizardStep(4)" 
+            id="step-tab-4"
+            class="text-xs font-semibold py-2.5 rounded-lg text-center transition-all cursor-pointer text-slate-400 hover:text-white"
+          >
+            4. Hygiene, Toxins & Water
+          </button>
+        </div>
+
+        <!-- PANEL CONTENT AREAS -->
+        <div class="flex-1 bg-[#0d1527] border border-slate-800/60 rounded-2xl p-6 shadow-xl relative overflow-hidden min-h-[400px]">
+          
+          <!-- STEP 1 PANEL: DEMOGRAPHICS MAPPING -->
+          <div id="panel-step-1" class="space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-800/60 pb-3">
+              <div>
+                <h3 class="text-base font-semibold text-white flex items-center gap-2">
+                  <i data-lucide="building-2" class="text-yellow-400 h-5 w-5"></i> Demographics Mapping (REQ-001)
+                </h3>
+                <p class="text-xs text-slate-400">Specify core corporate structures, parameters, and advisory personnel.</p>
+              </div>
+            </div>
+
+            <form id="demographics-form" class="grid grid-cols-1 md:grid-cols-2 gap-5" onchange="autoSaveDemographics()">
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Account / Company Name</label>
+                <input 
+                  type="text" 
+                  id="form-account-name"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-yellow-400/80 editable-cell"
+                  placeholder="e.g. San Miguel Dairy Plant B"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Parent Corporation conglomerates</label>
+                <select 
+                  id="form-parent-company"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-400/80 editable-cell"
+                >
+                  <option value="MVP Group">MVP Group</option>
+                  <option value="SMFI">SMFI</option>
+                  <option value="URC">URC</option>
+                  <option value="JFC">JFC</option>
+                  <option value="Century Pacific">Century Pacific</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Market Vertical / Food Segment</label>
+                <select 
+                  id="form-market-segment"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-400/80 editable-cell"
+                >
+                  <option value="Produce">Produce</option>
+                  <option value="Dairy">Dairy</option>
+                  <option value="RTE">RTE (Ready-to-Eat)</option>
+                  <option value="Meat and Poultry">Meat and Poultry</option>
+                  <option value="Ingredients">Ingredients</option>
+                  <option value="Contract Lab">Contract Lab</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Geographic Territory</label>
+                <select 
+                  id="form-geographic-area"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-400/80 editable-cell"
+                >
+                  <option value="North Luzon">North Luzon</option>
+                  <option value="South Luzon">South Luzon</option>
+                  <option value="Visayas">Visayas</option>
+                  <option value="Mindanao">Mindanao</option>
+                </select>
+              </div>
+
+              <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-800/60 pt-4 mt-2">
+                <div>
+                  <label class="block text-xs font-medium text-slate-400 mb-1.5">Key Account Manager (KAM)</label>
+                  <input 
+                    type="text" 
+                    id="form-kam-name"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white editable-cell"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-400 mb-1.5">Regional Sales Manager (RSM)</label>
+                  <input 
+                    type="text" 
+                    id="form-rsm-name"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white editable-cell"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-400 mb-1.5">Technical Advisory Manager (TAM)</label>
+                  <input 
+                    type="text" 
+                    id="form-tam-name"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white editable-cell"
+                  />
+                </div>
+              </div>
+            </form>
+
+            <div class="flex justify-between items-center border-t border-slate-800/60 pt-4">
+              <div class="text-[11px] text-slate-400 flex items-center gap-1.5">
+                <span class="h-2 w-2 rounded-full bg-amber-400"></span>
+                <span>Values are saved instantly to the mapping table upon change.</span>
+              </div>
+              <button 
+                onclick="setWizardStep(2)"
+                class="bg-yellow-500 text-slate-950 font-bold px-4 py-2 rounded-lg hover:brightness-110 active:scale-95 transition-all text-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                Next Step: Indicators <i data-lucide="chevron-right" class="h-3.5 w-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP 2 PANEL: BIOLOGICAL INDICATORS MATRIX -->
+          <div id="panel-step-2" class="space-y-6 hidden">
+            <div class="flex items-center justify-between border-b border-slate-800/60 pb-3">
+              <div>
+                <h3 class="text-base font-semibold text-white flex items-center gap-2">
+                  <i data-lucide="beaker" class="text-yellow-400 h-5 w-5"></i> Biological Indicators Survey (REQ-001)
+                </h3>
+                <p class="text-xs text-slate-400">Map volumes, methods, and competitor shares for standard biological tests. Yellow cells are user-editable.</p>
+              </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto border border-slate-800 rounded-xl bg-slate-950/40">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="bg-slate-900 border-b border-slate-800 text-slate-300">
+                    <th class="p-3 font-semibold">Biological Target</th>
+                    <th class="p-3 font-semibold">Source Type</th>
+                    <th class="p-3 font-semibold text-emerald-400">Neogen Method</th>
+                    <th class="p-3 font-semibold text-emerald-400">Neogen Annual Qty</th>
+                    <th class="p-3 font-semibold text-rose-400">Competitor 1 Method / Qty</th>
+                    <th class="p-3 font-semibold text-rose-400">Competitor 2 Method / Qty</th>
+                    <th class="p-3 font-semibold">Row Subtotal (PHP)</th>
+                  </tr>
+                </thead>
+                <tbody id="indicators-table-body" onchange="autoSaveIndicators()">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="flex justify-between items-center border-t border-slate-800/60 pt-4">
+              <button 
+                onclick="setWizardStep(1)"
+                class="border border-slate-800 hover:border-slate-700 text-slate-300 font-bold px-4 py-2 rounded-lg active:scale-95 transition-all text-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <i data-lucide="chevron-left" class="h-3.5 w-3.5"></i> Previous
+              </button>
+              <button 
+                onclick="setWizardStep(3)"
+                class="bg-yellow-500 text-slate-950 font-bold px-4 py-2 rounded-lg hover:brightness-110 active:scale-95 transition-all text-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                Next Step: Pathogens <i data-lucide="chevron-right" class="h-3.5 w-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP 3 PANEL: PATHOGEN PARAMETERS MATRIX -->
+          <div id="panel-step-3" class="space-y-6 hidden">
+            <div class="flex items-center justify-between border-b border-slate-800/60 pb-3">
+              <div>
+                <h3 class="text-base font-semibold text-white flex items-center gap-2">
+                  <i data-lucide="shield-alert" class="text-yellow-400 h-5 w-5"></i> High-Consequence Pathogens Survey (REQ-001)
+                </h3>
+                <p class="text-xs text-slate-400">Map volumes, diagnostic technologies, and competitor shares for pathogens. Yellow cells are user-editable.</p>
+              </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto border border-slate-800 rounded-xl bg-slate-950/40">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="bg-slate-900 border-b border-slate-800 text-slate-300">
+                    <th class="p-3 font-semibold">Pathogen Target</th>
+                    <th class="p-3 font-semibold text-emerald-400">Neogen Technology</th>
+                    <th class="p-3 font-semibold text-emerald-400">Neogen Annual Qty</th>
+                    <th class="p-3 font-semibold text-rose-400">Competitor Tech Platform</th>
+                    <th class="p-3 font-semibold text-rose-400">Competitor Annual Qty</th>
+                    <th class="p-3 font-semibold text-rose-400">Competitor Unit Price (PHP)</th>
+                    <th class="p-3 font-semibold">Row Subtotal (PHP)</th>
+                  </tr>
+                </thead>
+                <tbody id="pathogens-table-body" onchange="autoSavePathogens()">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="flex justify-between items-center border-t border-slate-800/60 pt-4">
+              <button 
+                onclick="setWizardStep(2)"
+                class="border border-slate-800 hover:border-slate-700 text-slate-300 font-bold px-4 py-2 rounded-lg active:scale-95 transition-all text-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <i data-lucide="chevron-left" class="h-3.5 w-3.5"></i> Previous
+              </button>
+              <button 
+                onclick="setWizardStep(4)"
+                class="bg-yellow-500 text-slate-950 font-bold px-4 py-2 rounded-lg hover:brightness-110 active:scale-95 transition-all text-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                Next Step: Hygiene & Water <i data-lucide="chevron-right" class="h-3.5 w-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP 4 PANEL: HYGIENE, TOXINS & SPECIAL WATER -->
+          <div id="panel-step-4" class="space-y-6 hidden">
+            <div class="flex items-center justify-between border-b border-slate-800/60 pb-3">
+              <div>
+                <h3 class="text-base font-semibold text-white flex items-center gap-2">
+                  <i data-lucide="droplet" class="text-yellow-400 h-5 w-5"></i> Sanitation, Allergens & Water Processing
+                </h3>
+                <p class="text-xs text-slate-400">Map hygiene monitors, lateral allergen vectors, and water quality parameters. Yellow cells are user-editable.</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" id="hygiene-form-container" onchange="autoSaveHygiene()">
+              
+              <!-- Segment A: Sanitation / ATP -->
+              <div class="bg-slate-950/60 p-4 border border-slate-800/80 rounded-xl space-y-4">
+                <div class="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
+                  <i data-lucide="zap" class="h-4 w-4"></i> Sanitation (ATP)
+                </div>
+                
+                <div class="space-y-3 text-xs">
+                  <div>
+                    <label class="block text-[11px] text-slate-400 mb-1">Neogen Platform</label>
+                    <select id="hyg-atp-platform" class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-white editable-cell">
+                      <option value="AccuPoint NG">AccuPoint NG</option>
+                      <option value="Clean-Trace">Clean-Trace</option>
+                      <option value="Hygiena">Hygiena SystemSURE</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-[11px] text-slate-400 mb-1">Neogen Annual Swabs Qty</label>
+                    <input type="number" id="hyg-atp-qty" class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-white editable-cell" placeholder="0" />
+                  </div>
+                  <div class="border-t border-slate-800/60 pt-2.5 mt-1 space-y-2">
+                    <div>
+                      <label class="block text-[11px] text-slate-400 mb-1">Competitor Platform</label>
+                      <input type="text" id="hyg-atp-comp-platform" class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-white editable-cell" placeholder="e.g. EnSURE Touch" />
+                    </div>
+                    <div>
+                      <label class="block text-[11px] text-slate-400 mb-1">Competitor Swabs Qty</label>
+                      <input type="number" id="hyg-atp-comp-qty" class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-white editable-cell" placeholder="0" />
+                    </div>
+                  </div>
+                  <div class="pt-2 flex justify-between font-mono text-[11px] text-slate-400">
+                    <span>ATP Subtotal:</span>
+                    <span id="subtotal-atp" class="font-bold text-white">₱0.00</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Segment B: Natural Toxins & Allergens -->
+              <div class="bg-slate-950/60 p-4 border border-slate-800/80 rounded-xl space-y-4">
+                <div class="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider">
+                  <i data-lucide="biohazard" class="h-4 w-4"></i> Allergen Testing
+                </div>
+                
+                <div class="space-y-3 text-xs">
+                  <div>
+                    <label class="block text-[11px] text-slate-400 mb-1">Allergen Variant Profile</label>
+                    <select id="hyg-allergen-variant" class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-white editable-cell">
+                      <option value="Gluten">Gluten (Reveal/Alere)</option>
+                      <option value="Soy">Soy</option>
+                      <option value="Peanut">Peanut</option>
+                      <option value="Milk">Milk</option>
+                      <option value="Egg">Egg</option>
+                      <option value="Aflatoxin">Mycotoxins (Aflatoxin)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-[11px] text-slate-400 mb-1">Neogen Annual Devices Qty</label>
+                    <input type="number" id="hyg-allergen-qty" class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-white editable-cell" placeholder="0" />
+                  </div>
+                  <div class="border-t border-slate-800/60 pt-2.5 mt-1 space-y-2">
+                    <div>
+                      <label class="block text-[11px] text-slate-400 mb-1">Competitor Platform</label>
+                      <input type="text" id="hyg-allergen-comp-platform" class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-white editable-cell" placeholder="e.g. Romer Labs" />
+                    </div>
+                    <div>
+                      <label class="block text-[11px] text-slate-400 mb-1">Competitor Devices Qty</label>
+                      <input type="number" id="hyg-allergen-comp-qty" class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-white editable-cell" placeholder="0" />
+                    </div>
+                  </div>
+                  <div class="pt-2 flex justify-between font-mono text-[11px] text-slate-400">
+                    <span>Allergen Subtotal:</span>
+                    <span id="subtotal-allergen" class="font-bold text-white">₱0.00</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Segment C: Water & Chemical Filtration (FQNA) -->
+              <div class="bg-slate-950/60 p-4 border border-slate-800/80 rounded-xl space-y-4">
+                <div class="flex items-center gap-2 text-sky-400 font-bold text-xs uppercase tracking-wider">
+                  <i data-lucide="waves" class="h-4 w-4"></i> Water & Chemical FQNA
+                </div>
+                
+                <div class="space-y-3 text-xs">
+                  <div>
+                    <label class="block text-[11px] text-slate-400 mb-1">Water Quality Parameters Description</label>
+                    <textarea id="hyg-water-details" class="w-full h-16 bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-white focus:border-yellow-400 focus:outline-none text-xs" placeholder="e.g. Boiler feedwater chemical testing, pH audits..."></textarea>
+                  </div>
+                  <div>
+                    <label class="block text-[11px] text-slate-400 mb-1">Neogen Annual Water Qty</label>
+                    <input type="number" id="hyg-water-qty" class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-white editable-cell" placeholder="0" />
+                  </div>
+                  <div class="border-t border-slate-800/60 pt-2.5 mt-1 space-y-2">
+                    <div>
+                      <label class="block text-[11px] text-slate-400 mb-1">Competitor Water Testing Qty</label>
+                      <input type="number" id="hyg-water-comp-qty" class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-white editable-cell" placeholder="0" />
+                    </div>
+                  </div>
+                  <div class="pt-2 flex justify-between font-mono text-[11px] text-slate-400">
+                    <span>Water Subtotal:</span>
+                    <span id="subtotal-water" class="font-bold text-white">₱0.00</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="flex justify-between items-center border-t border-slate-800/60 pt-4">
+              <button 
+                onclick="setWizardStep(3)"
+                class="border border-slate-800 hover:border-slate-700 text-slate-300 font-bold px-4 py-2 rounded-lg active:scale-95 transition-all text-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <i data-lucide="chevron-left" class="h-3.5 w-3.5"></i> Previous
+              </button>
+              
+              <div class="text-[11px] text-emerald-400 flex items-center gap-1">
+                <i data-lucide="check-circle-2" class="h-4 w-4"></i>
+                <span>Complete! All fields are synced in real-time.</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- LIVE COLLABORATIVE ANALYTICS & VISUAL GRAPHS -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- BI Visual Chart A -->
+          <div class="lg:col-span-2 bg-[#0d1527] border border-slate-800/60 rounded-2xl p-5 shadow-lg space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-sm font-semibold text-white">Segment Market Distribution & Saturation (₱ Value)</h3>
+                <p class="text-[11px] text-slate-400">Total volume calculated across all mapped client accounts.</p>
+              </div>
+              <div class="flex items-center gap-3 text-[10px] font-mono">
+                <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-amber-400"></span> Neogen Saturation</span>
+                <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-indigo-500"></span> Competitor share</span>
+              </div>
+            </div>
+            
+            <div class="h-64 relative">
+              <canvas id="market-segment-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- BI Visual Chart B -->
+          <div class="bg-[#0d1527] border border-slate-800/60 rounded-2xl p-5 shadow-lg space-y-4 flex flex-col justify-between">
+            <div>
+              <h3 class="text-sm font-semibold text-white">Biological Mapping Volume Mix</h3>
+              <p class="text-[11px] text-slate-400">Overall ratio of testing methods logged across the Philippines.</p>
+            </div>
+            
+            <div class="h-52 w-full flex items-center justify-center">
+              <canvas id="volume-donut-chart"></canvas>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 text-center text-[10px] font-mono border-t border-slate-850 pt-3">
+              <div>
+                <span class="text-slate-400 block">Indicators</span>
+                <strong class="text-indigo-400 text-xs" id="footer-indicator-vol">0</strong>
+              </div>
+              <div>
+                <span class="text-slate-400 block">Pathogens</span>
+                <strong class="text-emerald-400 text-xs" id="footer-pathogen-vol">0</strong>
+              </div>
+              <div>
+                <span class="text-slate-400 block">Hygiene</span>
+                <strong class="text-amber-400 text-xs" id="footer-hygiene-vol">0</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- 4. SLIDE-OUT DATABASE CONFIGURATION DRAWER -->
+  <div id="db-settings-drawer" class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-[#0d1527] border-l border-slate-800 shadow-2xl p-6 flex flex-col gap-5 transform translate-x-full transition-transform duration-300 ease-in-out">
+    
+    <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+      <div class="flex items-center gap-2">
+        <i data-lucide="database" class="h-5 w-5 text-yellow-400"></i>
+        <h3 class="text-base font-bold text-white">Database Settings</h3>
+      </div>
+      <button onclick="toggleDbSettingsDrawer(false)" class="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white cursor-pointer">
+        <i data-lucide="x" class="h-5 w-5"></i>
+      </button>
+    </div>
+
+    <div class="space-y-4 text-xs">
+      <p class="text-slate-400 leading-relaxed">
+        Connect this single-page dashboard directly to your Supabase instance. Once saved, all mappings, edits, and parameters will instantly sync live to the database for any coworker accessing this link.
+      </p>
+
+      <div class="p-3 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded-lg space-y-1">
+        <strong class="block">Offline Sandbox Active</strong>
+        <span>If left empty, all mapped records are stored locally in your browser sandbox, allowing full dashboard editing capability out of the box.</span>
+      </div>
+
+      <div class="space-y-3 pt-2">
+        <div>
+          <label class="block text-slate-400 mb-1">Supabase API Endpoint URL</label>
+          <input 
+            type="text" 
+            id="settings-supabase-url" 
+            placeholder="https://xyzabcdefghijklm.supabase.co" 
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-yellow-400"
+          />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Supabase Anon API Key</label>
+          <input 
+            type="password" 
+            id="settings-supabase-key" 
+            placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." 
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-yellow-400"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-auto space-y-2 pt-4 border-t border-slate-800">
+      <button 
+        onclick="saveDbSettings()"
+        class="w-full bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-bold py-2.5 rounded-lg hover:brightness-110 active:scale-95 transition-all text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+      >
+        <i data-lucide="check" class="h-4 w-4"></i> Save & Connect Database
+      </button>
+      <button 
+        onclick="clearDbSettings()"
+        class="w-full bg-slate-950 border border-slate-800 text-slate-400 py-2 rounded-lg hover:text-white transition-all text-xs flex items-center justify-center gap-1 cursor-pointer"
+      >
+        Reset to Sandbox/Offline Mode
+      </button>
+    </div>
+  </div>
+
+  <!-- Backdrop overlay -->
+  <div id="drawer-backdrop" onclick="toggleDbSettingsDrawer(false)" class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm hidden"></div>
+
+
+  <!-- ======================================================== -->
+  <!-- 5. JAVASCRIPT LOGIC BLOCK -->
+  <!-- ======================================================== -->
+  <script>
+    // -----------------------------------------------------------------
+    // STATE DECLARATION
+    // -----------------------------------------------------------------
+    let supabaseInstance = null;
+    let accounts = [];
+    let selectedAccountId = null;
+    let wizardStep = 1;
+    let currentAccountFilter = 'all'; // 'all' | 'my'
+
+    // Form inputs
+    let currentIndicators = [];
+    let currentPathogens = [];
+    let currentHygiene = null;
+
+    // Prices
+    const PRICES = {
+      indicatorNeogen: 150,
+      indicatorComp: 150,
+      pathogenNeogen: 450,
+      pathogenComp: 450,
+      atpNeogen: 180,
+      atpComp: 180,
+      allergenNeogen: 350,
+      allergenComp: 350,
+      waterNeogen: 250,
+      waterComp: 250
+    };
+
+    // Constant Targets mapping
+    const INDICATOR_TARGETS = [
+      'Total Plate Count (TPC)',
+      'Coliforms',
+      'Yeast & Mold',
+      'Enterobacteriaceae',
+      'E. coli (Generic)',
+      'Staphylococcus aureus',
+      'Bacillus cereus'
+    ];
+
+    const PATHOGEN_TARGETS = [
+      'Salmonella',
+      'Listeria spp.',
+      'Listeria monocytogenes',
+      'E. coli O157:H7',
+      'Campylobacter',
+      'Cronobacter spp.',
+      'Vibrio spp.'
+    ];
+
+    // Global Aggregate datasets for BI counts
+    let allIndicators = [];
+    let allPathogens = [];
+    let allHygiene = [];
+
+    // Chart Handles
+    let segmentChartInstance = null;
+    let donutChartInstance = null;
+
+    // -----------------------------------------------------------------
+    // INITIALIZATION & SETUP
+    // -----------------------------------------------------------------
+    window.addEventListener('DOMContentLoaded', () => {
+      // 1. Initialize Icons
+      lucide.createIcons();
+
+      // 2. Load Profiles from LocalStorage
+      loadCollaboratorProfile();
+
+      // 3. Initialize Supabase
+      initSupabaseConnection();
+
+      // 4. Load initial Data
+      loadAllData();
+    });
+
+    function loadCollaboratorProfile() {
+      let saved = localStorage.getItem('NEOGEN_USER');
+      if (saved) {
+        try {
+          const userObj = JSON.parse(saved);
+          document.getElementById('user-full-name').value = userObj.full_name || 'Collaborative Editor';
+          document.getElementById('user-team-role').value = userObj.team_role || 'Key Account Manager [KAM]';
+        } catch (e) {
+          setCollaboratorDefaults();
+        }
+      } else {
+        setCollaboratorDefaults();
+      }
+    }
+
+    function setCollaboratorDefaults() {
+      document.getElementById('user-full-name').value = 'Collaborative Editor';
+      document.getElementById('user-team-role').value = 'Key Account Manager [KAM]';
+      saveCollaboratorProfile();
+    }
+
+    function saveCollaboratorProfile() {
+      const full_name = document.getElementById('user-full-name').value || 'Collaborative Editor';
+      const team_role = document.getElementById('user-team-role').value || 'Key Account Manager [KAM]';
+      localStorage.setItem('NEOGEN_USER', JSON.stringify({ id: 'usr-collab', email: 'collaborator@grb.com.ph', full_name, team_role }));
+      
+      // If we have an active account, re-render demographics to reflect KAM updates
+      renderAccountsList();
+    }
+
+    function getCollaboratorName() {
+      return document.getElementById('user-full-name').value || 'Collaborative Editor';
+    }
+
+    // -----------------------------------------------------------------
+    // DATABASE CONNECTION & MANAGEMENT
+    // -----------------------------------------------------------------
+    function initSupabaseConnection() {
+      const url = localStorage.getItem('NEOGEN_SUPABASE_URL') || '';
+      const key = localStorage.getItem('NEOGEN_SUPABASE_ANON_KEY') || '';
+
+      document.getElementById('settings-supabase-url').value = url;
+      document.getElementById('settings-supabase-key').value = key;
+
+      const badge = document.getElementById('db-status-badge');
+      const text = document.getElementById('db-status-text');
+
+      if (url && key && url !== 'MY_SUPABASE_URL' && key !== 'MY_SUPABASE_ANON_KEY') {
+        try {
+          supabaseInstance = supabase.createClient(url, key);
+          text.innerText = 'Connected';
+          text.className = 'text-emerald-400';
+          badge.className = 'flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 transition-all cursor-pointer hover:bg-emerald-500/20';
+        } catch (e) {
+          console.error('Supabase connection failed:', e);
+          fallbackToSandbox();
+        }
+      } else {
+        fallbackToSandbox();
+      }
+    }
+
+    function fallbackToSandbox() {
+      supabaseInstance = null;
+      const badge = document.getElementById('db-status-badge');
+      const text = document.getElementById('db-status-text');
+      text.innerText = 'Browser Sandbox';
+      text.className = 'text-amber-400';
+      badge.className = 'flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border bg-amber-500/10 border-amber-500/30 text-amber-400 transition-all cursor-pointer hover:bg-amber-500/20';
+    }
+
+    function toggleDbSettingsDrawer(show) {
+      const drawer = document.getElementById('db-settings-drawer');
+      const backdrop = document.getElementById('drawer-backdrop');
+      if (show) {
+        drawer.classList.remove('translate-x-full');
+        backdrop.classList.remove('hidden');
+      } else {
+        drawer.classList.add('translate-x-full');
+        backdrop.classList.add('hidden');
+      }
+    }
+
+    function saveDbSettings() {
+      const url = document.getElementById('settings-supabase-url').value.trim();
+      const key = document.getElementById('settings-supabase-key').value.trim();
+
+      if (!url || !key) {
+        showToast('Please enter both Supabase URL and Anon API key.', 'error');
+        return;
+      }
+
+      localStorage.setItem('NEOGEN_SUPABASE_URL', url);
+      localStorage.setItem('NEOGEN_SUPABASE_ANON_KEY', key);
+
+      initSupabaseConnection();
+      toggleDbSettingsDrawer(false);
+      showToast('Database credentials updated! Fetching records...', 'success');
+      loadAllData();
+    }
+
+    function clearDbSettings() {
+      localStorage.removeItem('NEOGEN_SUPABASE_URL');
+      localStorage.removeItem('NEOGEN_SUPABASE_ANON_KEY');
+      document.getElementById('settings-supabase-url').value = '';
+      document.getElementById('settings-supabase-key').value = '';
+
+      fallbackToSandbox();
+      toggleDbSettingsDrawer(false);
+      showToast('Returned to Offline Sandbox Mode.', 'info');
+      loadAllData();
+    }
+
+    // -----------------------------------------------------------------
+    // DATA LAYER & CRUD LOGIC (REQ-001 / REQ-002)
+    // -----------------------------------------------------------------
+    async function loadAllData() {
+      try {
+        if (supabaseInstance) {
+          // Fetch from live database
+          const { data: list, error } = await supabaseInstance
+            .from('accounts')
+            .select('*')
+            .order('account_name', { ascending: true });
+
+          if (error) throw error;
+          accounts = list || [];
+
+          const { data: indList } = await supabaseInstance.from('indicator_testing').select('*');
+          allIndicators = indList || [];
+
+          const { data: pathList } = await supabaseInstance.from('pathogen_testing').select('*');
+          allPathogens = pathList || [];
+
+          const { data: hygList } = await supabaseInstance.from('hygiene_toxins_water').select('*');
+          allHygiene = hygList || [];
+
+        } else {
+          // Fetch from localstorage sandbox
+          const sandboxAccounts = localStorage.getItem('SANDBOX_ACCOUNTS');
+          if (sandboxAccounts) {
+            accounts = JSON.parse(sandboxAccounts);
+          } else {
+            // Seed default mockup accounts for sandbox
+            accounts = [
+              {
+                id: 'acc-mock-1',
+                account_name: 'San Miguel Dairy Plant South',
+                parent_company: 'SMFI',
+                market_segment: 'Dairy',
+                geographic_area: 'South Luzon',
+                kam_name: 'Jared de Guzman',
+                rsm_name: 'Clarissa Reyes',
+                tam_name: 'Maria Clara',
+                created_at: new Date().toISOString()
+              },
+              {
+                id: 'acc-mock-2',
+                account_name: 'Universal Robina Corp - Cavite',
+                parent_company: 'URC',
+                market_segment: 'RTE',
+                geographic_area: 'South Luzon',
+                kam_name: 'Collaborative Editor',
+                rsm_name: 'Clarissa Reyes',
+                tam_name: 'Maria Clara',
+                created_at: new Date().toISOString()
+              }
+            ];
+            localStorage.setItem('SANDBOX_ACCOUNTS', JSON.stringify(accounts));
+          }
+
+          // Fetch mapping lists
+          allIndicators = JSON.parse(localStorage.getItem('SANDBOX_INDICATORS') || '[]');
+          allPathogens = JSON.parse(localStorage.getItem('SANDBOX_PATHOGENS') || '[]');
+          allHygiene = JSON.parse(localStorage.getItem('SANDBOX_HYGIENE') || '[]');
+        }
+
+        renderAccountsList();
+
+        // Select first account if present and none selected
+        if (accounts.length > 0 && !selectedAccountId) {
+          selectAccount(accounts[0].id);
+        } else if (accounts.length === 0) {
+          selectedAccountId = null;
+          updateWorkspaceVisibility();
+        } else {
+          selectAccount(selectedAccountId);
+        }
+
+        recalculateBIAnalytics();
+
+      } catch (e) {
+        console.error(e);
+        showToast('Error syncing with live database: ' + e.message, 'error');
+        fallbackToSandbox();
+        loadAllData();
+      }
+    }
+
+    // Filter toggle
+    function setAccountFilter(type) {
+      currentAccountFilter = type;
+      const allBtn = document.getElementById('filter-all-btn');
+      const myBtn = document.getElementById('filter-my-btn');
+
+      if (type === 'all') {
+        allBtn.className = 'text-[10px] font-medium py-1 rounded text-center transition-all bg-slate-850 text-white';
+        myBtn.className = 'text-[10px] font-medium py-1 rounded text-center transition-all text-slate-400 hover:text-white';
+      } else {
+        myBtn.className = 'text-[10px] font-medium py-1 rounded text-center transition-all bg-slate-850 text-white';
+        allBtn.className = 'text-[10px] font-medium py-1 rounded text-center transition-all text-slate-400 hover:text-white';
+      }
+
+      renderAccountsList();
+    }
+
+    // Accounts rendering
+    function renderAccountsList() {
+      const container = document.getElementById('accounts-list-container');
+      const query = document.getElementById('account-search-input').value.toLowerCase();
+      
+      const filtered = accounts.filter(acc => {
+        // Text query match
+        const matchesQuery = acc.account_name.toLowerCase().includes(query) || 
+                             acc.parent_company.toLowerCase().includes(query) ||
+                             acc.kam_name.toLowerCase().includes(query);
+
+        if (currentAccountFilter === 'my') {
+          return matchesQuery && acc.kam_name === getCollaboratorName();
+        }
+        return matchesQuery;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="p-4 text-center text-xs text-slate-500">
+            No accounts match search filters.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(acc => {
+        const isSelected = acc.id === selectedAccountId;
+        return `
+          <div 
+            onclick="selectAccount('${acc.id}')"
+            class="p-3 rounded-lg border transition-all duration-150 cursor-pointer text-left ${
+              isSelected 
+                ? 'bg-yellow-500/10 border-yellow-500/40 shadow-inner' 
+                : 'bg-slate-900/40 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60'
+            }"
+          >
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-xs text-slate-100 line-clamp-1">${acc.account_name}</h3>
+              <span class="text-[9px] bg-slate-800 text-slate-300 border border-slate-700 px-1 py-0.5 rounded">${acc.market_segment}</span>
+            </div>
+            <div class="flex items-center justify-between mt-1 text-[10px] text-slate-400">
+              <span>Parent: <strong>${acc.parent_company}</strong></span>
+              <span class="font-mono text-[9px] text-slate-500">${acc.geographic_area}</span>
+            </div>
+            <div class="text-[9px] text-slate-500 font-mono mt-1 text-right">
+              KAM: ${acc.kam_name}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Select account trigger
+    async function selectAccount(id) {
+      selectedAccountId = id;
+      renderAccountsList();
+      updateWorkspaceVisibility();
+
+      if (!id) return;
+
+      const account = accounts.find(a => a.id === id);
+      if (!account) return;
+
+      // Populate demographics form
+      document.getElementById('form-account-name').value = account.account_name;
+      document.getElementById('form-parent-company').value = account.parent_company;
+      document.getElementById('form-market-segment').value = account.market_segment;
+      document.getElementById('form-geographic-area').value = account.geographic_area;
+      document.getElementById('form-kam-name').value = account.kam_name;
+      document.getElementById('form-rsm_name').value = account.rsm_name || '';
+      document.getElementById('form-tam-name').value = account.tam_name || '';
+
+      // Update workspace header details
+      document.getElementById('active-account-title').innerText = account.account_name;
+      document.getElementById('active-account-segment').innerText = account.market_segment;
+      document.getElementById('active-account-parent').innerText = account.parent_company;
+      document.getElementById('active-account-region').innerText = account.geographic_area;
+      document.getElementById('active-account-kam').innerText = account.kam_name;
+
+      // Fetch biological matrices
+      await loadAccountMatrices(id);
+      
+      // Render
+      renderIndicatorsTable();
+      renderPathogensTable();
+      renderHygieneForm();
+
+      recalculateBIAnalytics();
+    }
+
+    // Workspace Visibility Check
+    function updateWorkspaceVisibility() {
+      const banner = document.getElementById('no-selection-banner');
+      const area = document.getElementById('active-workspace-area');
+
+      if (selectedAccountId) {
+        banner.classList.add('hidden');
+        area.classList.remove('hidden');
+      } else {
+        banner.classList.remove('hidden');
+        area.classList.add('hidden');
+      }
+    }
+
+    // Start Mapping a New Account
+    async function startNewAccountFlow() {
+      const newId = 'acc-' + Math.random().toString(36).substr(2, 9);
+      const newAcc = {
+        id: newId,
+        account_name: 'New Survey Account ' + (accounts.length + 1),
+        parent_company: 'MVP Group',
+        market_segment: 'Produce',
+        geographic_area: 'North Luzon',
+        kam_name: getCollaboratorName(),
+        rsm_name: 'Clarissa Reyes',
+        tam_name: 'Maria Clara',
+        created_at: new Date().toISOString()
+      };
+
+      try {
+        if (supabaseInstance) {
+          const { data, error } = await supabaseInstance
+            .from('accounts')
+            .insert([newAcc])
+            .select()
+            .single();
+
+          if (error) throw error;
+          accounts.push(data);
+        } else {
+          accounts.push(newAcc);
+          localStorage.setItem('SANDBOX_ACCOUNTS', JSON.stringify(accounts));
+        }
+
+        selectedAccountId = newId;
+        showToast('Created new account mapping successfully!', 'success');
+        
+        // Seed blank matrices for this account
+        seedBlankSandboxMatrices(newId);
+
+        await loadAllData();
+        selectAccount(newId);
+        setWizardStep(1); // Start at profile card
+
+      } catch (e) {
+        showToast('Failed to insert new account: ' + e.message, 'error');
+      }
+    }
+
+    // Delete Active Mapped Account
+    async function deleteActiveAccount() {
+      if (!selectedAccountId) return;
+      const account = accounts.find(a => a.id === selectedAccountId);
+      if (!account) return;
+
+      if (!confirm(`Are you absolutely sure you want to delete mapped survey records for "${account.account_name}"? This operation cannot be undone.`)) {
+        return;
+      }
+
+      try {
+        if (supabaseInstance) {
+          // Relational CASCADE setup will trigger cleanups if set, else clean tables manually
+          await supabaseInstance.from('indicator_testing').delete().eq('account_id', selectedAccountId);
+          await supabaseInstance.from('pathogen_testing').delete().eq('account_id', selectedAccountId);
+          await supabaseInstance.from('hygiene_toxins_water').delete().eq('account_id', selectedAccountId);
+          
+          const { error } = await supabaseInstance.from('accounts').delete().eq('id', selectedAccountId);
+          if (error) throw error;
+        } else {
+          accounts = accounts.filter(a => a.id !== selectedAccountId);
+          localStorage.setItem('SANDBOX_ACCOUNTS', JSON.stringify(accounts));
+
+          // Clean local states
+          allIndicators = allIndicators.filter(i => i.account_id !== selectedAccountId);
+          allPathogens = allPathogens.filter(p => p.account_id !== selectedAccountId);
+          allHygiene = allHygiene.filter(h => h.account_id !== selectedAccountId);
+
+          localStorage.setItem('SANDBOX_INDICATORS', JSON.stringify(allIndicators));
+          localStorage.setItem('SANDBOX_PATHOGENS', JSON.stringify(allPathogens));
+          localStorage.setItem('SANDBOX_HYGIENE', JSON.stringify(allHygiene));
+        }
+
+        showToast('Account record deleted successfully.', 'info');
+        selectedAccountId = null;
+        await loadAllData();
+
+      } catch (e) {
+        showToast('Error deleting account: ' + e.message, 'error');
+      }
+    }
+
+    // Seed empty mock lists for sandbox compatibility
+    function seedBlankSandboxMatrices(accId) {
+      // Seed Indicators
+      INDICATOR_TARGETS.forEach(target => {
+        allIndicators.push({
+          id: 'ind-' + Math.random().toString(36).substr(2, 9),
+          account_id: accId,
+          target_name: target,
+          source_type: 'Food-Related',
+          neogen_method: 'Petrifilm',
+          neogen_qty: 0,
+          method_2_competitor_name: '',
+          method_2_qty: 0,
+          method_3_competitor_name: '',
+          method_3_qty: 0,
+          calculated_subtotal: 0
+        });
+      });
+
+      // Seed Pathogens
+      PATHOGEN_TARGETS.forEach(target => {
+        allPathogens.push({
+          id: 'pat-' + Math.random().toString(36).substr(2, 9),
+          account_id: accId,
+          target_name: target,
+          core_technology: 'MDS/MDA2',
+          volume_qty: 0,
+          competitor_tech: '',
+          competitor_qty: 0,
+          calculated_subtotal: 0
+        });
+      });
+
+      // Seed Hygiene
+      allHygiene.push({
+        id: 'hyg-' + Math.random().toString(36).substr(2, 9),
+        account_id: accId,
+        atp_platform: 'AccuPoint NG',
+        atp_qty: 0,
+        atp_competitor_platform: '',
+        atp_competitor_qty: 0,
+        atp_subtotal: 0,
+        allergen_variant: 'Gluten',
+        allergen_qty: 0,
+        allergen_competitor_platform: '',
+        allergen_competitor_qty: 0,
+        allergen_subtotal: 0,
+        water_fqna_details: '',
+        water_fqna_qty: 0,
+        water_fqna_competitor_qty: 0,
+        water_fqna_subtotal: 0
+      });
+
+      localStorage.setItem('SANDBOX_INDICATORS', JSON.stringify(allIndicators));
+      localStorage.setItem('SANDBOX_PATHOGENS', JSON.stringify(allPathogens));
+      localStorage.setItem('SANDBOX_HYGIENE', JSON.stringify(allHygiene));
+    }
+
+    // Load matrices for specified selected account
+    async function loadAccountMatrices(accId) {
+      if (supabaseInstance) {
+        // Fetch indicators
+        const { data: inds } = await supabaseInstance.from('indicator_testing').select('*').eq('account_id', accId);
+        // Ensure all targets map correctly
+        currentIndicators = INDICATOR_TARGETS.map(target => {
+          const match = (inds || []).find(i => i.target_name === target);
+          return match || {
+            id: '',
+            account_id: accId,
+            target_name: target,
+            source_type: 'Food-Related',
+            neogen_method: 'Petrifilm',
+            neogen_qty: 0,
+            method_2_competitor_name: '',
+            method_2_qty: 0,
+            method_3_competitor_name: '',
+            method_3_qty: 0,
+            calculated_subtotal: 0
+          };
+        });
+
+        // Fetch pathogens
+        const { data: paths } = await supabaseInstance.from('pathogen_testing').select('*').eq('account_id', accId);
+        currentPathogens = PATHOGEN_TARGETS.map(target => {
+          const match = (paths || []).find(p => p.target_name === target);
+          return match || {
+            id: '',
+            account_id: accId,
+            target_name: target,
+            core_technology: 'MDS/MDA2',
+            volume_qty: 0,
+            competitor_tech: '',
+            competitor_qty: 0,
+            calculated_subtotal: 0
+          };
+        });
+
+        // Fetch hygiene
+        const { data: hyg } = await supabaseInstance.from('hygiene_toxins_water').select('*').eq('account_id', accId).single();
+        currentHygiene = hyg || {
+          id: '',
+          account_id: accId,
+          atp_platform: 'AccuPoint NG',
+          atp_qty: 0,
+          atp_competitor_platform: '',
+          atp_competitor_qty: 0,
+          atp_subtotal: 0,
+          allergen_variant: 'Gluten',
+          allergen_qty: 0,
+          allergen_competitor_platform: '',
+          allergen_competitor_qty: 0,
+          allergen_subtotal: 0,
+          water_fqna_details: '',
+          water_fqna_qty: 0,
+          water_fqna_competitor_qty: 0,
+          water_fqna_subtotal: 0
+        };
+
+      } else {
+        // Fetch from local arrays
+        currentIndicators = allIndicators.filter(i => i.account_id === accId);
+        if (currentIndicators.length === 0) {
+          seedBlankSandboxMatrices(accId);
+          currentIndicators = allIndicators.filter(i => i.account_id === accId);
+        }
+
+        currentPathogens = allPathogens.filter(p => p.account_id === accId);
+        currentHygiene = allHygiene.find(h => h.account_id === accId) || null;
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // WIZARD TABS SEQUENCING (REQ-002 Onboarding Workflow)
+    // -----------------------------------------------------------------
+    function setWizardStep(step) {
+      wizardStep = step;
+      
+      // Update Tab Styles
+      for (let i = 1; i <= 4; i++) {
+        const tab = document.getElementById(`step-tab-${i}`);
+        if (i === step) {
+          tab.className = "text-xs font-semibold py-2.5 rounded-lg text-center transition-all cursor-pointer bg-slate-900 border border-slate-800 text-yellow-400 shadow-md";
+        } else {
+          tab.className = "text-xs font-semibold py-2.5 rounded-lg text-center transition-all cursor-pointer text-slate-400 hover:text-white";
+        }
+
+        // Hide Panels
+        const panel = document.getElementById(`panel-step-${i}`);
+        if (panel) {
+          if (i === step) {
+            panel.classList.remove('hidden');
+          } else {
+            panel.classList.add('hidden');
+          }
+        }
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // RENDERERS & AUTO-SAVE MECHANISM FOR EACH MATRIX PANEL
+    // -----------------------------------------------------------------
+
+    // 1. Core Profile / Demographics Auto-save
+    async function autoSaveDemographics() {
+      if (!selectedAccountId) return;
+
+      const account_name = document.getElementById('form-account-name').value.trim();
+      const parent_company = document.getElementById('form-parent-company').value;
+      const market_segment = document.getElementById('form-market-segment').value;
+      const geographic_area = document.getElementById('form-geographic-area').value;
+      const kam_name = document.getElementById('form-kam-name').value.trim();
+      const rsm_name = document.getElementById('form-rsm_name').value.trim();
+      const tam_name = document.getElementById('form-tam-name').value.trim();
+
+      if (!account_name) return;
+
+      // Update Local State
+      const index = accounts.findIndex(a => a.id === selectedAccountId);
+      if (index !== -1) {
+        accounts[index] = {
+          ...accounts[index],
+          account_name,
+          parent_company,
+          market_segment,
+          geographic_area,
+          kam_name,
+          rsm_name,
+          tam_name
+        };
+      }
+
+      // Sync Workspace Header
+      document.getElementById('active-account-title').innerText = account_name;
+      document.getElementById('active-account-segment').innerText = market_segment;
+      document.getElementById('active-account-parent').innerText = parent_company;
+      document.getElementById('active-account-region').innerText = geographic_area;
+      document.getElementById('active-account-kam').innerText = kam_name;
+
+      try {
+        if (supabaseInstance) {
+          const { error } = await supabaseInstance
+            .from('accounts')
+            .update({ account_name, parent_company, market_segment, geographic_area, kam_name, rsm_name, tam_name })
+            .eq('id', selectedAccountId);
+          
+          if (error) throw error;
+        } else {
+          localStorage.setItem('SANDBOX_ACCOUNTS', JSON.stringify(accounts));
+        }
+        recalculateBIAnalytics();
+      } catch (e) {
+        console.error('Error auto-saving demographics:', e);
+      }
+    }
+
+    // 2. Render Indicators Step 2 Table
+    function renderIndicatorsTable() {
+      const tbody = document.getElementById('indicators-table-body');
+      tbody.innerHTML = currentIndicators.map((ind, idx) => {
+        // Subtotal = (NeogenQty * Price) + (CompQty1 * Price) + (CompQty2 * Price)
+        const neogenSub = ind.neogen_qty * PRICES.indicatorNeogen;
+        const compSub = (Number(ind.method_2_qty || 0) + Number(ind.method_3_qty || 0)) * PRICES.indicatorComp;
+        const subtotal = neogenSub + compSub;
+
+        return `
+          <tr class="border-b border-slate-800/60 hover:bg-slate-900/10">
+            <td class="p-3 font-semibold text-slate-100">${ind.target_name}</td>
+            <td class="p-2">
+              <select id="ind-src-${idx}" class="bg-slate-900 text-slate-300 border border-slate-800 rounded px-1.5 py-1 text-xs focus:outline-none focus:border-yellow-400">
+                <option value="Food-Related" ${ind.source_type === 'Food-Related' ? 'selected' : ''}>Food-Related</option>
+                <option value="Environmental" ${ind.source_type === 'Environmental' ? 'selected' : ''}>Environmental</option>
+              </select>
+            </td>
+            <td class="p-2">
+              <select id="ind-meth-${idx}" class="bg-slate-900 text-emerald-300 border border-slate-800 rounded px-1.5 py-1 text-xs focus:outline-none focus:border-yellow-400">
+                <option value="Petrifilm" ${ind.neogen_method === 'Petrifilm' ? 'selected' : ''}>Petrifilm</option>
+                <option value="Soleris NG" ${ind.neogen_method === 'Soleris NG' ? 'selected' : ''}>Soleris NG</option>
+                <option value="NCM" ${ind.neogen_method === 'NCM' ? 'selected' : ''}>NCM Media</option>
+                <option value="Compact Dry" ${ind.neogen_method === 'Compact Dry' ? 'selected' : ''}>Compact Dry</option>
+              </select>
+            </td>
+            <td class="p-2">
+              <input 
+                type="number" 
+                id="ind-qty-${idx}" 
+                value="${ind.neogen_qty || 0}"
+                class="w-20 px-2 py-1 text-right rounded editable-cell"
+              />
+            </td>
+            <td class="p-2 space-y-1">
+              <input 
+                type="text" 
+                id="ind-c2-name-${idx}" 
+                placeholder="Competitor 1" 
+                value="${ind.method_2_competitor_name || ''}"
+                class="w-28 px-1.5 py-0.5 bg-slate-900 border border-slate-800 text-slate-200 rounded text-[11px]"
+              />
+              <input 
+                type="number" 
+                id="ind-c2-qty-${idx}" 
+                placeholder="Qty" 
+                value="${ind.method_2_qty || 0}"
+                class="w-16 px-1.5 py-0.5 text-right rounded text-[11px] editable-cell"
+              />
+            </td>
+            <td class="p-2 space-y-1">
+              <input 
+                type="text" 
+                id="ind-c3-name-${idx}" 
+                placeholder="Competitor 2" 
+                value="${ind.method_3_competitor_name || ''}"
+                class="w-28 px-1.5 py-0.5 bg-slate-900 border border-slate-800 text-slate-200 rounded text-[11px]"
+              />
+              <input 
+                type="number" 
+                id="ind-c3-qty-${idx}" 
+                placeholder="Qty" 
+                value="${ind.method_3_qty || 0}"
+                class="w-16 px-1.5 py-0.5 text-right rounded text-[11px] editable-cell"
+              />
+            </td>
+            <td class="p-3 font-mono text-right text-slate-300 font-bold">₱${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Auto-save Indicators table
+    async function autoSaveIndicators() {
+      if (!selectedAccountId) return;
+
+      currentIndicators = currentIndicators.map((ind, idx) => {
+        const neogen_qty = Math.max(0, parseInt(document.getElementById(`ind-qty-${idx}`).value) || 0);
+        const method_2_qty = Math.max(0, parseInt(document.getElementById(`ind-c2-qty-${idx}`).value) || 0);
+        const method_3_qty = Math.max(0, parseInt(document.getElementById(`ind-c3-qty-${idx}`).value) || 0);
+
+        const subtotal = (neogen_qty * PRICES.indicatorNeogen) + ((method_2_qty + method_3_qty) * PRICES.indicatorComp);
+
+        return {
+          ...ind,
+          source_type: document.getElementById(`ind-src-${idx}`).value,
+          neogen_method: document.getElementById(`ind-meth-${idx}`).value,
+          neogen_qty,
+          method_2_competitor_name: document.getElementById(`ind-c2-name-${idx}`).value,
+          method_2_qty,
+          method_3_competitor_name: document.getElementById(`ind-c3-name-${idx}`).value,
+          method_3_qty,
+          calculated_subtotal: subtotal
+        };
+      });
+
+      // Update rendering (to update subtotal cells) without losing input focus if possible, else recalculate
+      renderIndicatorsTable();
+      
+      try {
+        if (supabaseInstance) {
+          // Upsert records to Supabase
+          for (const ind of currentIndicators) {
+            const record = {
+              account_id: selectedAccountId,
+              target_name: ind.target_name,
+              source_type: ind.source_type,
+              neogen_method: ind.neogen_method,
+              neogen_qty: ind.neogen_qty,
+              method_2_competitor_name: ind.method_2_competitor_name,
+              method_2_qty: ind.method_2_qty,
+              method_3_competitor_name: ind.method_3_competitor_name,
+              method_3_qty: ind.method_3_qty,
+              calculated_subtotal: ind.calculated_subtotal
+            };
+
+            if (ind.id) {
+              await supabaseInstance.from('indicator_testing').update(record).eq('id', ind.id);
+            } else {
+              const { data } = await supabaseInstance.from('indicator_testing').insert([record]).select().single();
+              if (data) ind.id = data.id;
+            }
+          }
+        } else {
+          // Save locally
+          // Filter out other accounts
+          allIndicators = allIndicators.filter(i => i.account_id !== selectedAccountId).concat(currentIndicators);
+          localStorage.setItem('SANDBOX_INDICATORS', JSON.stringify(allIndicators));
+        }
+
+        recalculateBIAnalytics();
+
+      } catch (e) {
+        console.error('Error auto-saving indicators:', e);
+      }
+    }
+
+    // 3. Render Pathogens Step 3 Table
+    function renderPathogensTable() {
+      const tbody = document.getElementById('pathogens-table-body');
+      tbody.innerHTML = currentPathogens.map((path, idx) => {
+        const neogenSub = path.volume_qty * PRICES.pathogenNeogen;
+        const compSub = path.competitor_qty * PRICES.pathogenComp;
+        const subtotal = neogenSub + compSub;
+
+        return `
+          <tr class="border-b border-slate-800/60 hover:bg-slate-900/10">
+            <td class="p-3 font-semibold text-slate-100">${path.target_name}</td>
+            <td class="p-2">
+              <select id="path-tech-${idx}" class="bg-slate-900 text-emerald-300 border border-slate-800 rounded px-1.5 py-1 text-xs focus:outline-none focus:border-yellow-400">
+                <option value="MDS/MDA2" ${path.core_technology === 'MDS/MDA2' ? 'selected' : ''}>MDS/MDA2</option>
+                <option value="ANSR" ${path.core_technology === 'ANSR' ? 'selected' : ''}>ANSR Isothermal</option>
+                <option value="Reveal" ${path.core_technology === 'Reveal' ? 'selected' : ''}>Reveal LFD</option>
+                <option value="Culture Media" ${path.core_technology === 'Culture Media' ? 'selected' : ''}>Culture Media</option>
+              </select>
+            </td>
+            <td class="p-2">
+              <input 
+                type="number" 
+                id="path-qty-${idx}" 
+                value="${path.volume_qty || 0}"
+                class="w-24 px-2 py-1 text-right rounded editable-cell"
+              />
+            </td>
+            <td class="p-2">
+              <input 
+                type="text" 
+                id="path-comp-tech-${idx}" 
+                placeholder="e.g. Bio-Rad iQ-Check" 
+                value="${path.competitor_tech || ''}"
+                class="w-40 px-2 py-1 bg-slate-900 border border-slate-800 text-slate-200 rounded"
+              />
+            </td>
+            <td class="p-2">
+              <input 
+                type="number" 
+                id="path-comp-qty-${idx}" 
+                value="${path.competitor_qty || 0}"
+                class="w-24 px-2 py-1 text-right rounded editable-cell"
+              />
+            </td>
+            <td class="p-2">
+              <input 
+                type="number" 
+                id="path-comp-price-${idx}" 
+                placeholder="₱450"
+                class="w-24 px-2 py-1 text-right rounded bg-slate-900 border border-slate-800 text-slate-300"
+                disabled
+              />
+            </td>
+            <td class="p-3 font-mono text-right text-slate-300 font-bold">₱${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Auto-save Pathogens Table
+    async function autoSavePathogens() {
+      if (!selectedAccountId) return;
+
+      currentPathogens = currentPathogens.map((path, idx) => {
+        const volume_qty = Math.max(0, parseInt(document.getElementById(`path-qty-${idx}`).value) || 0);
+        const competitor_qty = Math.max(0, parseInt(document.getElementById(`path-comp-qty-${idx}`).value) || 0);
+        const subtotal = (volume_qty * PRICES.pathogenNeogen) + (competitor_qty * PRICES.pathogenComp);
+
+        return {
+          ...path,
+          core_technology: document.getElementById(`path-tech-${idx}`).value,
+          volume_qty,
+          competitor_tech: document.getElementById(`path-comp-tech-${idx}`).value,
+          competitor_qty,
+          calculated_subtotal: subtotal
+        };
+      });
+
+      renderPathogensTable();
+
+      try {
+        if (supabaseInstance) {
+          for (const path of currentPathogens) {
+            const record = {
+              account_id: selectedAccountId,
+              target_name: path.target_name,
+              core_technology: path.core_technology,
+              volume_qty: path.volume_qty,
+              competitor_tech: path.competitor_tech,
+              competitor_qty: path.competitor_qty,
+              calculated_subtotal: path.calculated_subtotal
+            };
+
+            if (path.id) {
+              await supabaseInstance.from('pathogen_testing').update(record).eq('id', path.id);
+            } else {
+              const { data } = await supabaseInstance.from('pathogen_testing').insert([record]).select().single();
+              if (data) path.id = data.id;
+            }
+          }
+        } else {
+          allPathogens = allPathogens.filter(p => p.account_id !== selectedAccountId).concat(currentPathogens);
+          localStorage.setItem('SANDBOX_PATHOGENS', JSON.stringify(allPathogens));
+        }
+
+        recalculateBIAnalytics();
+
+      } catch (e) {
+        console.error('Error saving pathogens:', e);
+      }
+    }
+
+    // 4. Render Hygiene / Step 4 Panel
+    function renderHygieneForm() {
+      if (!currentHygiene) return;
+
+      document.getElementById('hyg-atp-platform').value = currentHygiene.atp_platform || 'AccuPoint NG';
+      document.getElementById('hyg-atp-qty').value = currentHygiene.atp_qty || 0;
+      document.getElementById('hyg-atp-comp-platform').value = currentHygiene.atp_competitor_platform || '';
+      document.getElementById('hyg-atp-comp-qty').value = currentHygiene.atp_competitor_qty || 0;
+
+      document.getElementById('hyg-allergen-variant').value = currentHygiene.allergen_variant || 'Gluten';
+      document.getElementById('hyg-allergen-qty').value = currentHygiene.allergen_qty || 0;
+      document.getElementById('hyg-allergen-comp-platform').value = currentHygiene.allergen_competitor_platform || '';
+      document.getElementById('hyg-allergen-comp-qty').value = currentHygiene.allergen_competitor_qty || 0;
+
+      document.getElementById('hyg-water-details').value = currentHygiene.water_fqna_details || '';
+      document.getElementById('hyg-water-qty').value = currentHygiene.water_fqna_qty || 0;
+      document.getElementById('hyg-water-comp-qty').value = currentHygiene.water_fqna_competitor_qty || 0;
+
+      // Update Subtotal text elements
+      updateHygieneSubtotals();
+    }
+
+    function updateHygieneSubtotals() {
+      if (!currentHygiene) return;
+
+      const atpQty = Math.max(0, parseInt(document.getElementById('hyg-atp-qty').value) || 0);
+      const atpCompQty = Math.max(0, parseInt(document.getElementById('hyg-atp-comp-qty').value) || 0);
+      const atpSub = (atpQty * PRICES.atpNeogen) + (atpCompQty * PRICES.atpComp);
+      document.getElementById('subtotal-atp').innerText = `₱${atpSub.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+      const allQty = Math.max(0, parseInt(document.getElementById('hyg-allergen-qty').value) || 0);
+      const allCompQty = Math.max(0, parseInt(document.getElementById('hyg-allergen-comp-qty').value) || 0);
+      const allSub = (allQty * PRICES.allergenNeogen) + (allCompQty * PRICES.allergenComp);
+      document.getElementById('subtotal-allergen').innerText = `₱${allSub.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+      const watQty = Math.max(0, parseInt(document.getElementById('hyg-water-qty').value) || 0);
+      const watCompQty = Math.max(0, parseInt(document.getElementById('hyg-water-comp-qty').value) || 0);
+      const watSub = (watQty * PRICES.waterNeogen) + (watCompQty * PRICES.waterComp);
+      document.getElementById('subtotal-water').innerText = `₱${watSub.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    // Auto-save Hygiene parameters
+    async function autoSaveHygiene() {
+      if (!selectedAccountId || !currentHygiene) return;
+
+      const atp_qty = Math.max(0, parseInt(document.getElementById('hyg-atp-qty').value) || 0);
+      const atp_competitor_qty = Math.max(0, parseInt(document.getElementById('hyg-atp-comp-qty').value) || 0);
+      const atp_subtotal = (atp_qty * PRICES.atpNeogen) + (atp_competitor_qty * PRICES.atpComp);
+
+      const allergen_qty = Math.max(0, parseInt(document.getElementById('hyg-allergen-qty').value) || 0);
+      const allergen_competitor_qty = Math.max(0, parseInt(document.getElementById('hyg-allergen-comp-qty').value) || 0);
+      const allergen_subtotal = (allergen_qty * PRICES.allergenNeogen) + (allergen_competitor_qty * PRICES.allergenComp);
+
+      const water_fqna_qty = Math.max(0, parseInt(document.getElementById('hyg-water-qty').value) || 0);
+      const water_fqna_competitor_qty = Math.max(0, parseInt(document.getElementById('hyg-water-comp-qty').value) || 0);
+      const water_fqna_subtotal = (water_fqna_qty * PRICES.waterNeogen) + (water_fqna_competitor_qty * PRICES.waterComp);
+
+      currentHygiene = {
+        ...currentHygiene,
+        atp_platform: document.getElementById('hyg-atp-platform').value,
+        atp_qty,
+        atp_competitor_platform: document.getElementById('hyg-atp-comp-platform').value,
+        atp_competitor_qty,
+        atp_subtotal,
+        allergen_variant: document.getElementById('hyg-allergen-variant').value,
+        allergen_qty,
+        allergen_competitor_platform: document.getElementById('hyg-allergen-comp-platform').value,
+        allergen_competitor_qty,
+        allergen_subtotal,
+        water_fqna_details: document.getElementById('hyg-water-details').value,
+        water_fqna_qty,
+        water_fqna_competitor_qty,
+        water_fqna_subtotal
+      };
+
+      // Refresh labels
+      updateHygieneSubtotals();
+
+      try {
+        if (supabaseInstance) {
+          if (currentHygiene.id) {
+            await supabaseInstance.from('hygiene_toxins_water').update(currentHygiene).eq('id', currentHygiene.id);
+          } else {
+            const { data } = await supabaseInstance.from('hygiene_toxins_water').insert([currentHygiene]).select().single();
+            if (data) currentHygiene.id = data.id;
+          }
+        } else {
+          allHygiene = allHygiene.filter(h => h.account_id !== selectedAccountId).concat([currentHygiene]);
+          localStorage.setItem('SANDBOX_HYGIENE', JSON.stringify(allHygiene));
+        }
+
+        recalculateBIAnalytics();
+
+      } catch (e) {
+        console.error('Error saving hygiene form:', e);
+      }
+    }
+
+
+    // -----------------------------------------------------------------
+    // DYNAMIC BI ANALYTICS RECALCULATION & CHARTS ENGINE (Section 4)
+    // -----------------------------------------------------------------
+    function recalculateBIAnalytics() {
+      // 1. Sync aggregate arrays to local storage if in sandbox
+      if (!supabaseInstance) {
+        // Fetch to confirm up-to-date
+        allIndicators = JSON.parse(localStorage.getItem('SANDBOX_INDICATORS') || '[]');
+        allPathogens = JSON.parse(localStorage.getItem('SANDBOX_PATHOGENS') || '[]');
+        allHygiene = JSON.parse(localStorage.getItem('SANDBOX_HYGIENE') || '[]');
+      }
+
+      let neogenIndicatorQty = 0;
+      let competitorIndicatorQty = 0;
+
+      let neogenPathogenQty = 0;
+      let competitorPathogenQty = 0;
+
+      let neogenHygieneQty = 0;
+      let competitorHygieneQty = 0;
+
+      let neogenIndicatorValue = 0;
+      let competitorIndicatorValue = 0;
+
+      let neogenPathogenValue = 0;
+      let competitorPathogenValue = 0;
+
+      let neogenHygieneValue = 0;
+      let competitorHygieneValue = 0;
+
+      let activeChecklistInputs = 0;
+      let totalChecklistProperties = 0;
+
+      // Accounts properties tracker
+      accounts.forEach(acc => {
+        if (acc.account_name) activeChecklistInputs++;
+        if (acc.parent_company) activeChecklistInputs++;
+        if (acc.market_segment) activeChecklistInputs++;
+        if (acc.geographic_area) activeChecklistInputs++;
+        if (acc.kam_name) activeChecklistInputs++;
+        totalChecklistProperties += 5;
+      });
+
+      // Indicators volumes & prices
+      allIndicators.forEach(ind => {
+        neogenIndicatorQty += ind.neogen_qty;
+        competitorIndicatorQty += ((ind.method_2_qty || 0) + (ind.method_3_qty || 0));
+
+        neogenIndicatorValue += (ind.neogen_qty * PRICES.indicatorNeogen);
+        competitorIndicatorValue += (((ind.method_2_qty || 0) + (ind.method_3_qty || 0)) * PRICES.indicatorComp);
+
+        if (ind.neogen_qty > 0) activeChecklistInputs++;
+        if (ind.method_2_qty > 0) activeChecklistInputs++;
+        if (ind.method_3_qty > 0) activeChecklistInputs++;
+        totalChecklistProperties += 3;
+      });
+
+      // Pathogen volumes & prices
+      allPathogens.forEach(p => {
+        neogenPathogenQty += p.volume_qty;
+        competitorPathogenQty += p.competitor_qty;
+
+        neogenPathogenValue += (p.volume_qty * PRICES.pathogenNeogen);
+        competitorPathogenValue += (p.competitor_qty * PRICES.pathogenComp);
+
+        if (p.volume_qty > 0) activeChecklistInputs++;
+        if (p.competitor_qty > 0) activeChecklistInputs++;
+        totalChecklistProperties += 2;
+      });
+
+      // Hygiene, ATP & Water volumes & prices
+      allHygiene.forEach(hyg => {
+        neogenHygieneQty += ((hyg.atp_qty || 0) + (hyg.allergen_qty || 0) + (hyg.water_fqna_qty || 0));
+        competitorHygieneQty += ((hyg.atp_competitor_qty || 0) + (hyg.allergen_competitor_qty || 0) + (hyg.water_fqna_competitor_qty || 0));
+
+        neogenHygieneValue += ((hyg.atp_qty || 0) * PRICES.atpNeogen + (hyg.allergen_qty || 0) * PRICES.allergenNeogen + (hyg.water_fqna_qty || 0) * PRICES.waterNeogen);
+        competitorHygieneValue += ((hyg.atp_competitor_qty || 0) * PRICES.atpComp + (hyg.allergen_competitor_qty || 0) * PRICES.allergenComp + (hyg.water_fqna_competitor_qty || 0) * PRICES.waterComp);
+
+        if (hyg.atp_qty > 0) activeChecklistInputs++;
+        if (hyg.allergen_qty > 0) activeChecklistInputs++;
+        if (hyg.water_fqna_qty > 0) activeChecklistInputs++;
+        totalChecklistProperties += 3;
+      });
+
+      const totalNeogenVolume = neogenIndicatorQty + neogenPathogenQty + neogenHygieneQty;
+      const totalCompetitorVolume = competitorIndicatorQty + competitorPathogenQty + competitorHygieneQty;
+      const totalOverallVolume = totalNeogenVolume + totalCompetitorVolume;
+
+      const totalNeogenValue = neogenIndicatorValue + neogenPathogenValue + neogenHygieneValue;
+
+      // Completion Rate Formula
+      const completionRate = totalChecklistProperties > 0 
+        ? Math.round((activeChecklistInputs / totalChecklistProperties) * 100) 
+        : 0;
+
+      // Market Share %
+      const marketShare = totalOverallVolume > 0 
+        ? Math.round((totalNeogenVolume / totalOverallVolume) * 100) 
+        : 0;
+
+      // Render Dashboard KPIs
+      document.getElementById('kpi-completion-rate').innerText = completionRate + '%';
+      document.getElementById('kpi-completion-progress').style.width = completionRate + '%';
+      document.getElementById('kpi-annual-value').innerText = '₱' + totalNeogenValue.toLocaleString('en-US', { maximumFractionDigits: 0 });
+      document.getElementById('kpi-neogen-share').innerText = marketShare + '%';
+      document.getElementById('kpi-competitor-volume').innerText = totalCompetitorVolume.toLocaleString();
+
+      // Footer volume labels
+      document.getElementById('footer-indicator-vol').innerText = (neogenIndicatorQty + competitorIndicatorQty).toLocaleString();
+      document.getElementById('footer-pathogen-vol').innerText = (neogenPathogenQty + competitorPathogenQty).toLocaleString();
+      document.getElementById('footer-hygiene-vol').innerText = (neogenHygieneQty + competitorHygieneQty).toLocaleString();
+
+      // Update Interactive Chart JS Elements
+      renderMarketShareCharts(
+        neogenIndicatorQty, competitorIndicatorQty,
+        neogenPathogenQty, competitorPathogenQty,
+        neogenHygieneQty, competitorHygieneQty
+      );
+    }
+
+    // High-Fidelity Chart.js drawing
+    function renderMarketShareCharts(neogenInd, compInd, neogenPat, compPat, neogenHyg, compHyg) {
+      
+      // A. Bar Chart: Neogen vs Competitor Saturation across Categories (Indicator, Pathogen, Hygiene)
+      const barCtx = document.getElementById('market-segment-chart').getContext('2d');
+      if (segmentChartInstance) {
+        segmentChartInstance.destroy();
+      }
+
+      segmentChartInstance = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Indicators Volume', 'Pathogens Volume', 'Hygiene / Water Volume'],
+          datasets: [
+            {
+              label: 'Neogen Saturation',
+              data: [neogenInd, neogenPat, neogenHyg],
+              backgroundColor: 'rgba(245, 158, 11, 0.85)', // Golden Amber
+              borderColor: '#f59e0b',
+              borderWidth: 1.5,
+              borderRadius: 6
+            },
+            {
+              label: 'Competitor Capture',
+              data: [compInd, compPat, compHyg],
+              backgroundColor: 'rgba(99, 102, 241, 0.6)', // Indigo Indigo
+              borderColor: '#6366f1',
+              borderWidth: 1.5,
+              borderRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#94a3b8', font: { size: 10, family: 'JetBrains Mono' } }
+            },
+            y: {
+              grid: { color: '#1e293b' },
+              ticks: { color: '#94a3b8', font: { size: 10, family: 'JetBrains Mono' } }
+            }
+          }
+        }
+      });
+
+      // B. Donut Chart: Volume Ratio Share mapping (Indicators vs Pathogens vs Hygiene)
+      const donutCtx = document.getElementById('volume-donut-chart').getContext('2d');
+      if (donutChartInstance) {
+        donutChartInstance.destroy();
+      }
+
+      const totalInd = neogenInd + compInd;
+      const totalPat = neogenPat + compPat;
+      const totalHyg = neogenHyg + compHyg;
+
+      donutChartInstance = new Chart(donutCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Indicators', 'Pathogens', 'Hygiene & Water'],
+          datasets: [{
+            data: [totalInd || 1, totalPat || 0, totalHyg || 0],
+            backgroundColor: [
+              '#6366f1', // Indigo
+              '#10b981', // Emerald
+              '#f59e0b'  // Gold
+            ],
+            borderWidth: 3,
+            borderColor: '#0d1527',
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: '#cbd5e1',
+                padding: 15,
+                font: { size: 10, family: 'Inter' }
+              }
+            }
+          },
+          cutout: '70%'
+        }
+      });
+    }
+
+    // Simple Custom Toast Notifications
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      let bg = 'bg-slate-900 border-slate-800';
+      let icon = 'info';
+      let textCol = 'text-white';
+
+      if (type === 'success') {
+        bg = 'bg-emerald-500/10 border-emerald-500/30';
+        icon = 'check-circle-2';
+        textCol = 'text-emerald-400';
+      } else if (type === 'error') {
+        bg = 'bg-rose-500/10 border-rose-500/30';
+        icon = 'alert-triangle';
+        textCol = 'text-rose-400';
+      }
+
+      toast.className = `p-3 rounded-xl border flex items-center gap-2.5 shadow-xl text-xs backdrop-blur-md pointer-events-auto transition-all duration-300 transform translate-x-12 opacity-0 ${bg}`;
+      toast.innerHTML = `
+        <i data-lucide="${icon}" class="h-4.5 w-4.5 shrink-0 ${textCol}"></i>
+        <span class="font-medium text-slate-200">${message}</span>
+      `;
+
+      container.appendChild(toast);
+      lucide.createIcons({ attrs: { 'data-lucide': icon } });
+
+      // Animate In
+      setTimeout(() => {
+        toast.classList.remove('translate-x-12', 'opacity-0');
+      }, 50);
+
+      // Dismiss Out
+      setTimeout(() => {
+        toast.classList.add('translate-x-12', 'opacity-0');
+        setTimeout(() => {
+          toast.remove();
+        }, 300);
+      }, 4000);
+    }
+  </script>
+</body>
+</html>
