@@ -1176,7 +1176,7 @@
       document.getElementById('form-market-segment').value = account.market_segment;
       document.getElementById('form-geographic-area').value = account.geographic_area;
       document.getElementById('form-kam-name').value = account.kam_name;
-      document.getElementById('form-rsm_name').value = account.rsm_name || '';
+      document.getElementById('form-rsm-name').value = account.rsm_name || '';
       document.getElementById('form-tam-name').value = account.tam_name || '';
 
       // Update workspace header details
@@ -1417,15 +1417,59 @@
         };
 
       } else {
-        // Fetch from local arrays
-        currentIndicators = allIndicators.filter(i => i.account_id === accId);
-        if (currentIndicators.length === 0) {
-          seedBlankSandboxMatrices(accId);
-          currentIndicators = allIndicators.filter(i => i.account_id === accId);
-        }
+        // Fetch from local arrays with fallback standard mapping to guarantee full coverage
+        const inds = allIndicators.filter(i => i.account_id === accId);
+        currentIndicators = INDICATOR_TARGETS.map(target => {
+          const match = inds.find(i => i.target_name === target);
+          return match || {
+            id: generateUUID(),
+            account_id: accId,
+            target_name: target,
+            source_type: 'Food-Related',
+            neogen_method: 'Petrifilm',
+            neogen_qty: 0,
+            method_2_competitor_name: '',
+            method_2_qty: 0,
+            method_3_competitor_name: '',
+            method_3_qty: 0,
+            calculated_subtotal: 0
+          };
+        });
 
-        currentPathogens = allPathogens.filter(p => p.account_id === accId);
-        currentHygiene = allHygiene.find(h => h.account_id === accId) || null;
+        const paths = allPathogens.filter(p => p.account_id === accId);
+        currentPathogens = PATHOGEN_TARGETS.map(target => {
+          const match = paths.find(p => p.target_name === target);
+          return match || {
+            id: generateUUID(),
+            account_id: accId,
+            target_name: target,
+            core_technology: 'MDS/MDA2',
+            volume_qty: 0,
+            competitor_tech: '',
+            competitor_qty: 0,
+            calculated_subtotal: 0
+          };
+        });
+
+        const hyg = allHygiene.find(h => h.account_id === accId);
+        currentHygiene = hyg || {
+          id: generateUUID(),
+          account_id: accId,
+          atp_platform: 'AccuPoint NG',
+          atp_qty: 0,
+          atp_competitor_platform: '',
+          atp_competitor_qty: 0,
+          atp_subtotal: 0,
+          allergen_variant: 'Gluten',
+          allergen_qty: 0,
+          allergen_competitor_platform: '',
+          allergen_competitor_qty: 0,
+          allergen_subtotal: 0,
+          water_fqna_details: '',
+          water_fqna_qty: 0,
+          water_fqna_competitor_qty: 0,
+          water_fqna_subtotal: 0
+        };
       }
     }
 
@@ -1469,7 +1513,7 @@
       const market_segment = document.getElementById('form-market-segment').value;
       const geographic_area = document.getElementById('form-geographic-area').value;
       const kam_name = document.getElementById('form-kam-name').value.trim();
-      const rsm_name = document.getElementById('form-rsm_name').value.trim();
+      const rsm_name = document.getElementById('form-rsm-name').value.trim();
       const tam_name = document.getElementById('form-tam-name').value.trim();
 
       if (!account_name) return;
@@ -1609,8 +1653,17 @@
         };
       });
 
-      // Update rendering (to update subtotal cells) without losing input focus if possible, else recalculate
-      renderIndicatorsTable();
+      // Update subtotals dynamically on the screen instead of full table re-render to keep focus!
+      currentIndicators.forEach((ind, idx) => {
+        const tbody = document.getElementById(`indicators-table-body`);
+        if (tbody && tbody.children[idx]) {
+          const row = tbody.children[idx];
+          const subtotalCell = row.cells[6]; // Row Subtotal is the 7th column (index 6)
+          if (subtotalCell) {
+            subtotalCell.innerText = `₱${ind.calculated_subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          }
+        }
+      });
       
       try {
         if (supabaseInstance) {
@@ -1728,7 +1781,17 @@
         };
       });
 
-      renderPathogensTable();
+      // Update subtotals dynamically on the screen instead of full table re-render to keep focus!
+      currentPathogens.forEach((path, idx) => {
+        const tbody = document.getElementById(`pathogens-table-body`);
+        if (tbody && tbody.children[idx]) {
+          const row = tbody.children[idx];
+          const subtotalCell = row.cells[6]; // Row Subtotal is the 7th column (index 6)
+          if (subtotalCell) {
+            subtotalCell.innerText = `₱${path.calculated_subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          }
+        }
+      });
 
       try {
         if (supabaseInstance) {
