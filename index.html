@@ -14,7 +14,9 @@
           colors: {
             spacebg: '#060b13',
             panelbg: '#0d1527',
-            goldglow: '#f59e0b',
+            goldglow: '#3b82f6',
+            brandblue: '#3b82f6',
+            brandgreen: '#10b981',
           },
           fontFamily: {
             sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
@@ -67,23 +69,23 @@
       border-radius: 4px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: #f59e0b;
+      background: #3b82f6;
     }
-    /* Yellow editable cells highlight */
+    /* Blue/Green editable cells highlight */
     .editable-cell {
-      background-color: rgba(245, 158, 11, 0.08);
-      border: 1px solid rgba(245, 158, 11, 0.25);
-      color: #fef08a;
+      background-color: rgba(59, 130, 246, 0.06);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
       transition: all 0.2s ease-in-out;
     }
     .editable-cell:hover {
-      background-color: rgba(245, 158, 11, 0.14);
-      border-color: rgba(245, 158, 11, 0.45);
+      background-color: rgba(59, 130, 246, 0.12);
+      border-color: rgba(59, 130, 246, 0.4);
     }
     .editable-cell:focus {
-      background-color: rgba(245, 158, 11, 0.2);
-      border-color: #f59e0b;
-      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+      background-color: rgba(59, 130, 246, 0.18);
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
       outline: none;
     }
   </style>
@@ -93,13 +95,16 @@
   <!-- 1. HEADER & GLOBAL BAR -->
   <header class="sticky top-0 z-40 bg-[#0d1527]/95 border-b border-slate-800/80 backdrop-blur-md px-6 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
     <div class="flex items-center gap-3">
-      <div class="p-2 bg-gradient-to-tr from-amber-500 to-yellow-400 rounded-lg text-slate-950 shadow-md">
+      <div class="p-2 bg-gradient-to-tr from-blue-600 to-emerald-500 rounded-lg text-white shadow-md">
         <i data-lucide="activity" class="h-6 w-6 stroke-[2.5]"></i>
       </div>
       <div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <h1 class="text-xl font-bold tracking-tight text-white">Neogen PH-GRB</h1>
           <span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 font-mono">Food Safety BI</span>
+          <span id="db-status-badge" class="text-[10px] px-2 py-0.5 rounded font-medium flex items-center gap-1 bg-slate-800 text-slate-400 border border-slate-700 font-mono">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-slate-500 animate-pulse"></span> Connecting...
+          </span>
         </div>
         <p class="text-xs text-slate-400">Account Mapping & Saturation Tracking Tool (Live Production Mode)</p>
       </div>
@@ -109,14 +114,14 @@
 
       <!-- Collaborative Editor Profile Card -->
       <div class="flex items-center gap-3 bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-1.5">
-        <div class="h-7 w-7 rounded-full bg-yellow-400/10 flex items-center justify-center border border-yellow-500/20 text-yellow-400 text-xs font-semibold shrink-0">
+        <div class="h-7 w-7 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20 text-blue-400 text-xs font-semibold shrink-0">
           ✍
         </div>
         <div>
           <input 
             type="text"
             id="user-full-name"
-            class="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-yellow-400 text-xs font-semibold text-slate-100 focus:outline-none w-32"
+            class="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-blue-500 text-xs font-semibold text-slate-100 focus:outline-none w-32"
             placeholder="Your Name"
             title="Collaborative Editor Name"
             onchange="saveCollaboratorProfile()"
@@ -137,14 +142,14 @@
   </header>
 
   <!-- Supabase Schema Warning Banner -->
-  <div id="supabase-setup-warning" class="hidden bg-amber-500/10 border-b border-amber-500/30 px-6 py-2.5 flex items-center justify-between text-xs text-amber-200">
+  <div id="supabase-setup-warning" class="hidden bg-blue-500/10 border-b border-blue-500/30 px-6 py-2.5 flex items-center justify-between text-xs text-blue-200">
     <div class="flex items-center gap-2.5">
-      <i data-lucide="alert-triangle" class="h-4 w-4 text-amber-400 shrink-0"></i>
+      <i data-lucide="alert-triangle" class="h-4 w-4 text-blue-400 shrink-0"></i>
       <span>
-        <strong>Supabase tables are missing or unreachable.</strong> The app is running in Local Sandbox Mode fallback with mock data. Please run the <code class="bg-amber-950/50 text-amber-300 px-1 py-0.5 rounded font-mono">supabase_schema.sql</code> script in your Supabase SQL Editor.
+        <strong>Supabase tables are missing or unreachable.</strong> The app is running in Local Sandbox Mode fallback with mock data. Please run the <code class="bg-blue-950/50 text-blue-300 px-1 py-0.5 rounded font-mono">supabase_schema.sql</code> script in your Supabase SQL Editor.
       </span>
     </div>
-    <button onclick="toggleSchemaModal(true)" class="text-[10px] font-bold bg-amber-500 text-slate-950 hover:brightness-110 px-2.5 py-1 rounded transition-all cursor-pointer">
+    <button onclick="toggleSchemaModal(true)" class="text-[10px] font-bold bg-blue-600 text-white hover:bg-blue-500 px-2.5 py-1 rounded transition-all cursor-pointer">
       Get SQL Script
     </button>
   </div>
@@ -164,7 +169,7 @@
           <h2 class="text-sm font-semibold tracking-wide uppercase text-slate-400">Mapped Accounts</h2>
           <button 
             onclick="startNewAccountFlow()"
-            class="p-1.5 bg-yellow-500 text-slate-950 rounded hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1 text-xs font-bold px-2.5"
+            class="p-1.5 bg-blue-600 text-white rounded hover:bg-blue-500 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1 text-xs font-bold px-2.5"
             title="Map New Food Safety Account"
           >
             <i data-lucide="plus" class="h-3 w-3"></i> Map New
@@ -180,7 +185,7 @@
             id="account-search-input"
             oninput="renderAccountsList()"
             placeholder="Search accounts..." 
-            class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-400/80"
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
           />
         </div>
 
@@ -221,14 +226,14 @@
 
       <!-- Dynamic Welcome / No Selection Card -->
       <div id="no-selection-banner" class="flex-1 flex flex-col items-center justify-center text-center p-8 hidden">
-        <div class="p-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 rounded-full mb-4">
+        <div class="p-4 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-full mb-4">
           <i data-lucide="shield-alert" class="h-10 w-10"></i>
         </div>
         <h3 class="text-lg font-bold text-white">No Mapped Account Selected</h3>
         <p class="text-slate-400 text-sm max-w-sm mt-1 mb-6">Select an account from the left sidebar to edit parameters, or create a brand new account mapping survey.</p>
         <button 
           onclick="startNewAccountFlow()"
-          class="bg-yellow-500 text-slate-950 font-bold px-4 py-2.5 rounded-lg hover:brightness-110 flex items-center gap-2 cursor-pointer transition-all"
+          class="bg-blue-600 text-white font-bold px-4 py-2.5 rounded-lg hover:bg-blue-500 flex items-center gap-2 cursor-pointer transition-all"
         >
           <i data-lucide="plus-circle" class="h-4 w-4"></i> Map New Account Now
         </button>
@@ -256,7 +261,7 @@
 
           <!-- KPI 2: Est. Annual Value -->
           <div class="bg-[#0d1527] border border-slate-800/60 p-4 rounded-xl flex items-center gap-3.5 relative overflow-hidden group hover:border-slate-700 transition-all duration-200">
-            <div class="p-2.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400">
+            <div class="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400">
               <i data-lucide="coins" class="h-5 w-5"></i>
             </div>
             <div>
@@ -280,7 +285,7 @@
 
           <!-- KPI 4: Competitor Capture -->
           <div class="bg-[#0d1527] border border-slate-800/60 p-4 rounded-xl flex items-center gap-3.5 relative overflow-hidden group hover:border-slate-700 transition-all duration-200">
-            <div class="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400">
+            <div class="p-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
               <i data-lucide="trending-up" class="h-5 w-5"></i>
             </div>
             <div>
@@ -297,7 +302,7 @@
           <div class="space-y-1">
             <div class="flex items-center gap-2">
               <h2 class="text-xl font-bold text-white tracking-tight" id="active-account-title">Selected Account Name</h2>
-              <span class="text-xs bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2 py-0.5 rounded font-medium" id="active-account-segment">Dairy</span>
+              <span class="text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-medium" id="active-account-segment">Dairy</span>
             </div>
             <p class="text-xs text-slate-400 flex items-center gap-4">
               <span>Parent Group: <strong class="text-white" id="active-account-parent">MVP</strong></span>
@@ -326,7 +331,7 @@
           <button 
             onclick="setWizardStep(1)" 
             id="step-tab-1"
-            class="text-xs font-semibold py-2.5 rounded-lg text-center transition-all cursor-pointer bg-slate-900 border border-slate-800 text-yellow-400 shadow-md"
+            class="text-xs font-semibold py-2.5 rounded-lg text-center transition-all cursor-pointer bg-slate-900 border border-slate-800 text-blue-400 shadow-md"
           >
             1. Core Profile
           </button>
@@ -361,7 +366,7 @@
             <div class="flex items-center justify-between border-b border-slate-800/60 pb-3">
               <div>
                 <h3 class="text-base font-semibold text-white flex items-center gap-2">
-                  <i data-lucide="building-2" class="text-yellow-400 h-5 w-5"></i> Demographics Mapping (REQ-001)
+                  <i data-lucide="building-2" class="text-blue-400 h-5 w-5"></i> Demographics Mapping (REQ-001)
                 </h3>
                 <p class="text-xs text-slate-400">Specify core corporate structures, parameters, and advisory personnel.</p>
               </div>
@@ -373,7 +378,7 @@
                 <input 
                   type="text" 
                   id="form-account-name"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-yellow-400/80 editable-cell"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 editable-cell"
                   placeholder="e.g. San Miguel Dairy Plant B"
                 />
               </div>
@@ -382,7 +387,7 @@
                 <label class="block text-xs font-medium text-slate-400 mb-1.5">Parent Corporation conglomerates</label>
                 <select 
                   id="form-parent-company"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-400/80 editable-cell"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 editable-cell"
                 >
                   <option value="MVP Group">MVP Group</option>
                   <option value="SMFI">SMFI</option>
@@ -396,7 +401,7 @@
                 <label class="block text-xs font-medium text-slate-400 mb-1.5">Market Vertical / Food Segment</label>
                 <select 
                   id="form-market-segment"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-400/80 editable-cell"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 editable-cell"
                 >
                   <option value="Produce">Produce</option>
                   <option value="Dairy">Dairy</option>
@@ -411,7 +416,7 @@
                 <label class="block text-xs font-medium text-slate-400 mb-1.5">Geographic Territory</label>
                 <select 
                   id="form-geographic-area"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-400/80 editable-cell"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 editable-cell"
                 >
                   <option value="North Luzon">North Luzon</option>
                   <option value="South Luzon">South Luzon</option>
@@ -450,12 +455,12 @@
 
             <div class="flex justify-between items-center border-t border-slate-800/60 pt-4">
               <div class="text-[11px] text-slate-400 flex items-center gap-1.5">
-                <span class="h-2 w-2 rounded-full bg-amber-400"></span>
+                <span class="h-2 w-2 rounded-full bg-blue-500"></span>
                 <span>Values are saved instantly to the mapping table upon change.</span>
               </div>
               <button 
                 onclick="setWizardStep(2)"
-                class="bg-yellow-500 text-slate-950 font-bold px-4 py-2 rounded-lg hover:brightness-110 active:scale-95 transition-all text-xs flex items-center gap-1.5 cursor-pointer"
+                class="bg-blue-600 text-white font-bold px-4 py-2 rounded-lg hover:bg-blue-500 active:scale-95 transition-all text-xs flex items-center gap-1.5 cursor-pointer"
               >
                 Next Step: Indicators <i data-lucide="chevron-right" class="h-3.5 w-3.5"></i>
               </button>
@@ -467,9 +472,9 @@
             <div class="flex items-center justify-between border-b border-slate-800/60 pb-3">
               <div>
                 <h3 class="text-base font-semibold text-white flex items-center gap-2">
-                  <i data-lucide="beaker" class="text-yellow-400 h-5 w-5"></i> Biological Indicators Survey (REQ-001)
+                  <i data-lucide="beaker" class="text-blue-400 h-5 w-5"></i> Biological Indicators Survey (REQ-001)
                 </h3>
-                <p class="text-xs text-slate-400">Map volumes, methods, and competitor shares for standard biological tests. Yellow cells are user-editable.</p>
+                <p class="text-xs text-slate-400">Map volumes, methods, and competitor shares for standard biological tests. Highlighted blue cells are user-editable.</p>
               </div>
             </div>
 
@@ -502,7 +507,7 @@
               </button>
               <button 
                 onclick="setWizardStep(3)"
-                class="bg-yellow-500 text-slate-950 font-bold px-4 py-2 rounded-lg hover:brightness-110 active:scale-95 transition-all text-xs flex items-center gap-1.5 cursor-pointer"
+                class="bg-blue-600 text-white font-bold px-4 py-2 rounded-lg hover:bg-blue-500 active:scale-95 transition-all text-xs flex items-center gap-1.5 cursor-pointer"
               >
                 Next Step: Pathogens <i data-lucide="chevron-right" class="h-3.5 w-3.5"></i>
               </button>
@@ -514,9 +519,9 @@
             <div class="flex items-center justify-between border-b border-slate-800/60 pb-3">
               <div>
                 <h3 class="text-base font-semibold text-white flex items-center gap-2">
-                  <i data-lucide="shield-alert" class="text-yellow-400 h-5 w-5"></i> High-Consequence Pathogens Survey (REQ-001)
+                  <i data-lucide="shield-alert" class="text-blue-400 h-5 w-5"></i> High-Consequence Pathogens Survey (REQ-001)
                 </h3>
-                <p class="text-xs text-slate-400">Map volumes, diagnostic technologies, and competitor shares for pathogens. Yellow cells are user-editable.</p>
+                <p class="text-xs text-slate-400">Map volumes, diagnostic technologies, and competitor shares for pathogens. Highlighted blue cells are user-editable.</p>
               </div>
             </div>
 
@@ -549,7 +554,7 @@
               </button>
               <button 
                 onclick="setWizardStep(4)"
-                class="bg-yellow-500 text-slate-950 font-bold px-4 py-2 rounded-lg hover:brightness-110 active:scale-95 transition-all text-xs flex items-center gap-1.5 cursor-pointer"
+                class="bg-blue-600 text-white font-bold px-4 py-2 rounded-lg hover:bg-blue-500 active:scale-95 transition-all text-xs flex items-center gap-1.5 cursor-pointer"
               >
                 Next Step: Hygiene & Water <i data-lucide="chevron-right" class="h-3.5 w-3.5"></i>
               </button>
@@ -561,9 +566,9 @@
             <div class="flex items-center justify-between border-b border-slate-800/60 pb-3">
               <div>
                 <h3 class="text-base font-semibold text-white flex items-center gap-2">
-                  <i data-lucide="droplet" class="text-yellow-400 h-5 w-5"></i> Sanitation, Allergens & Water Processing
+                  <i data-lucide="droplet" class="text-blue-400 h-5 w-5"></i> Sanitation, Allergens & Water Processing
                 </h3>
-                <p class="text-xs text-slate-400">Map hygiene monitors, lateral allergen vectors, and water quality parameters. Yellow cells are user-editable.</p>
+                <p class="text-xs text-slate-400">Map hygiene monitors, lateral allergen vectors, and water quality parameters. Highlighted blue cells are user-editable.</p>
               </div>
             </div>
 
@@ -653,7 +658,7 @@
                 <div class="space-y-3 text-xs">
                   <div>
                     <label class="block text-[11px] text-slate-400 mb-1">Water Quality Parameters Description</label>
-                    <textarea id="hyg-water-details" class="w-full h-16 bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-white focus:border-yellow-400 focus:outline-none text-xs" placeholder="e.g. Boiler feedwater chemical testing, pH audits..."></textarea>
+                    <textarea id="hyg-water-details" class="w-full h-16 bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-white focus:border-blue-500 focus:outline-none text-xs" placeholder="e.g. Boiler feedwater chemical testing, pH audits..."></textarea>
                   </div>
                   <div>
                     <label class="block text-[11px] text-slate-400 mb-1">Neogen Annual Water Qty</label>
@@ -701,8 +706,8 @@
                 <p class="text-[11px] text-slate-400">Total volume calculated across all mapped client accounts.</p>
               </div>
               <div class="flex items-center gap-3 text-[10px] font-mono">
-                <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-amber-400"></span> Neogen Saturation</span>
-                <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-indigo-500"></span> Competitor share</span>
+                <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-blue-500"></span> Neogen Saturation</span>
+                <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-emerald-500"></span> Competitor share</span>
               </div>
             </div>
             
@@ -725,7 +730,7 @@
             <div class="grid grid-cols-3 gap-2 text-center text-[10px] font-mono border-t border-slate-850 pt-3">
               <div>
                 <span class="text-slate-400 block">Indicators</span>
-                <strong class="text-indigo-400 text-xs" id="footer-indicator-vol">0</strong>
+                <strong class="text-blue-400 text-xs" id="footer-indicator-vol">0</strong>
               </div>
               <div>
                 <span class="text-slate-400 block">Pathogens</span>
@@ -733,7 +738,7 @@
               </div>
               <div>
                 <span class="text-slate-400 block">Hygiene</span>
-                <strong class="text-amber-400 text-xs" id="footer-hygiene-vol">0</strong>
+                <strong class="text-cyan-400 text-xs" id="footer-hygiene-vol">0</strong>
               </div>
             </div>
           </div>
@@ -1167,6 +1172,18 @@
         const warningBanner = document.getElementById('supabase-setup-warning');
         if (warningBanner) {
           warningBanner.classList.add('hidden');
+        }
+      }
+
+      // Update dynamic database connection status badge
+      const statusBadge = document.getElementById('db-status-badge');
+      if (statusBadge) {
+        if (isDbError) {
+          statusBadge.className = "text-[10px] px-2 py-0.5 rounded font-medium flex items-center gap-1 bg-amber-500/10 text-amber-400 border border-amber-500/25 font-mono";
+          statusBadge.innerHTML = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500"></span> Sandbox Mode';
+        } else {
+          statusBadge.className = "text-[10px] px-2 py-0.5 rounded font-medium flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-mono";
+          statusBadge.innerHTML = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live Supabase';
         }
       }
 
@@ -2190,16 +2207,16 @@
             {
               label: 'Neogen Saturation',
               data: [neogenInd, neogenPat, neogenHyg],
-              backgroundColor: 'rgba(245, 158, 11, 0.85)', // Golden Amber
-              borderColor: '#f59e0b',
+              backgroundColor: 'rgba(59, 130, 246, 0.85)', // Vibrant Blue
+              borderColor: '#3b82f6',
               borderWidth: 1.5,
               borderRadius: 6
             },
             {
               label: 'Competitor Capture',
               data: [compInd, compPat, compHyg],
-              backgroundColor: 'rgba(99, 102, 241, 0.6)', // Indigo Indigo
-              borderColor: '#6366f1',
+              backgroundColor: 'rgba(16, 185, 129, 0.7)', // Emerald Green
+              borderColor: '#10b981',
               borderWidth: 1.5,
               borderRadius: 6
             }
@@ -2243,9 +2260,9 @@
           datasets: [{
             data: [totalInd || 1, totalPat || 0, totalHyg || 0],
             backgroundColor: [
-              '#6366f1', // Indigo
-              '#10b981', // Emerald
-              '#f59e0b'  // Gold
+              '#3b82f6', // Bright Blue
+              '#10b981', // Emerald Green
+              '#06b6d4'  // Cyan (complementing blue-green)
             ],
             borderWidth: 3,
             borderColor: '#0d1527',
