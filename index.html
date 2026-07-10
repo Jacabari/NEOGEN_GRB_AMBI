@@ -802,6 +802,20 @@
   <!-- ======================================================== -->
   <script>
     // -----------------------------------------------------------------
+    // UUID v4 Generator for Database/Sandbox ID Uniqueness
+    // -----------------------------------------------------------------
+    function generateUUID() {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+      }
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    // -----------------------------------------------------------------
     // STATE DECLARATION
     // -----------------------------------------------------------------
     let supabaseInstance = null;
@@ -1199,7 +1213,7 @@
 
     // Start Mapping a New Account
     async function startNewAccountFlow() {
-      const newId = 'acc-' + Math.random().toString(36).substr(2, 9);
+      const newId = generateUUID();
       const newAcc = {
         id: newId,
         account_name: 'New Survey Account ' + (accounts.length + 1),
@@ -1289,7 +1303,7 @@
       // Seed Indicators
       INDICATOR_TARGETS.forEach(target => {
         allIndicators.push({
-          id: 'ind-' + Math.random().toString(36).substr(2, 9),
+          id: generateUUID(),
           account_id: accId,
           target_name: target,
           source_type: 'Food-Related',
@@ -1306,7 +1320,7 @@
       // Seed Pathogens
       PATHOGEN_TARGETS.forEach(target => {
         allPathogens.push({
-          id: 'pat-' + Math.random().toString(36).substr(2, 9),
+          id: generateUUID(),
           account_id: accId,
           target_name: target,
           core_technology: 'MDS/MDA2',
@@ -1319,7 +1333,7 @@
 
       // Seed Hygiene
       allHygiene.push({
-        id: 'hyg-' + Math.random().toString(36).substr(2, 9),
+        id: generateUUID(),
         account_id: accId,
         atp_platform: 'AccuPoint NG',
         atp_qty: 0,
