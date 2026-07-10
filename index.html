@@ -102,7 +102,7 @@
         <div class="flex flex-wrap items-center gap-2">
           <h1 class="text-xl font-bold tracking-tight text-white">Neogen PH-GRB</h1>
           <span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 font-mono">Food Safety BI</span>
-          <span id="db-status-badge" class="text-[10px] px-2 py-0.5 rounded font-medium flex items-center gap-1 bg-slate-800 text-slate-400 border border-slate-700 font-mono">
+          <span id="db-status-badge" onclick="toggleDbSettingsDrawer(true)" class="text-[10px] px-2 py-0.5 rounded font-medium flex items-center gap-1 bg-slate-800 text-slate-400 border border-slate-700 font-mono cursor-pointer hover:bg-slate-700/85 transition-all" title="Configure Database Connection">
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-slate-500 animate-pulse"></span> Connecting...
           </span>
         </div>
@@ -111,6 +111,16 @@
     </div>
 
     <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+
+      <!-- Database Connection Settings Button -->
+      <button 
+        onclick="toggleDbSettingsDrawer(true)"
+        class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/80 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold cursor-pointer transition-all shrink-0"
+        title="Configure Supabase Database Connection"
+      >
+        <i data-lucide="database" class="h-3.5 w-3.5 text-blue-400"></i>
+        <span>DB Settings</span>
+      </button>
 
       <!-- Collaborative Editor Profile Card -->
       <div class="flex items-center gap-3 bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-1.5">
@@ -926,11 +936,94 @@
     }
 
     function toggleDbSettingsDrawer(show) {
-      console.warn('Database settings drawer is disabled in live production mode.');
+      const modal = document.getElementById('db-settings-modal');
+      if (modal) {
+        if (show) {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          document.getElementById('settings-supabase-url-modal').value = localStorage.getItem('NEOGEN_SUPABASE_URL') || '';
+          document.getElementById('settings-supabase-key-modal').value = localStorage.getItem('NEOGEN_SUPABASE_ANON_KEY') || '';
+          document.getElementById('connection-test-result').className = 'hidden p-2.5 rounded text-[11px] font-mono border';
+        } else {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
+      }
     }
 
-    function saveDbSettings() {}
-    function clearDbSettings() {}
+    async function testDbConnection() {
+      const url = document.getElementById('settings-supabase-url-modal').value.trim();
+      const key = document.getElementById('settings-supabase-key-modal').value.trim();
+      const resultEl = document.getElementById('connection-test-result');
+      
+      if (!url || !key) {
+        resultEl.classList.remove('hidden');
+        resultEl.className = 'p-2.5 rounded text-[11px] font-mono border bg-rose-500/10 border-rose-500/20 text-rose-400';
+        resultEl.textContent = 'Error: Please fill in both the Supabase URL and Anon Key.';
+        return;
+      }
+
+      resultEl.classList.remove('hidden');
+      resultEl.className = 'p-2.5 rounded text-[11px] font-mono border bg-slate-800 text-slate-300 border-slate-700';
+      resultEl.textContent = 'Testing connection...';
+
+      try {
+        const testClient = supabase.createClient(url, key);
+        const { data, error } = await testClient.from('accounts').select('id').limit(1);
+        if (error) {
+          if (error.code === 'PGRST116' || error.message.includes('relation "public.accounts" does not exist') || error.message.includes('does not exist')) {
+            resultEl.className = 'p-2.5 rounded text-[11px] font-mono border bg-amber-500/10 border-amber-500/30 text-amber-400';
+            resultEl.innerHTML = '✔ Connected to Supabase!<br/><span class="text-[10px] text-slate-400">But warning: <strong>accounts</strong> table was not found. Please run the SQL schema script in your Supabase SQL editor.</span>';
+          } else {
+            throw error;
+          }
+        } else {
+          resultEl.className = 'p-2.5 rounded text-[11px] font-mono border bg-emerald-500/10 border-emerald-500/20 text-emerald-400';
+          resultEl.textContent = '✔ Success! Connected to Supabase and verified tables successfully.';
+        }
+      } catch (err) {
+        resultEl.className = 'p-2.5 rounded text-[11px] font-mono border bg-rose-500/10 border-rose-500/20 text-rose-400';
+        resultEl.textContent = 'Connection failed: ' + err.message;
+      }
+    }
+
+    function saveDbSettings() {
+      const url = document.getElementById('settings-supabase-url-modal').value.trim();
+      const key = document.getElementById('settings-supabase-key-modal').value.trim();
+
+      if (!url || !key) {
+        showToast('Please fill in both the URL and Anon Key', 'error');
+        return;
+      }
+
+      localStorage.setItem('NEOGEN_SUPABASE_URL', url);
+      localStorage.setItem('NEOGEN_SUPABASE_ANON_KEY', key);
+      
+      toggleDbSettingsDrawer(false);
+      showToast('Supabase settings saved! Reloading data...', 'success');
+      
+      initSupabaseConnection();
+      loadAllData();
+    }
+
+    function clearDbSettings() {
+      if (confirm('Are you sure you want to clear your custom Supabase connection? This will fallback to Sandbox Mode.')) {
+        localStorage.removeItem('NEOGEN_SUPABASE_URL');
+        localStorage.removeItem('NEOGEN_SUPABASE_ANON_KEY');
+        document.getElementById('settings-supabase-url-modal').value = '';
+        document.getElementById('settings-supabase-key-modal').value = '';
+        
+        const resultEl = document.getElementById('connection-test-result');
+        if (resultEl) resultEl.classList.add('hidden');
+        
+        toggleDbSettingsDrawer(false);
+        showToast('Supabase settings cleared. Switched to Sandbox Mode.', 'success');
+        
+        supabaseInstance = null;
+        initSupabaseConnection();
+        loadAllData();
+      }
+    }
 
     function toggleSchemaModal(show) {
       const modal = document.getElementById('schema-modal');
@@ -1178,11 +1271,12 @@
       // Update dynamic database connection status badge
       const statusBadge = document.getElementById('db-status-badge');
       if (statusBadge) {
+        statusBadge.onclick = () => toggleDbSettingsDrawer(true);
         if (isDbError) {
-          statusBadge.className = "text-[10px] px-2 py-0.5 rounded font-medium flex items-center gap-1 bg-amber-500/10 text-amber-400 border border-amber-500/25 font-mono";
-          statusBadge.innerHTML = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500"></span> Sandbox Mode';
+          statusBadge.className = "text-[10px] px-2 py-0.5 rounded font-medium flex items-center gap-1 bg-amber-500/10 text-amber-400 border border-amber-500/25 font-mono cursor-pointer hover:bg-amber-500/20 transition-all";
+          statusBadge.innerHTML = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500"></span> Sandbox Mode (Click to configure)';
         } else {
-          statusBadge.className = "text-[10px] px-2 py-0.5 rounded font-medium flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-mono";
+          statusBadge.className = "text-[10px] px-2 py-0.5 rounded font-medium flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-mono cursor-pointer hover:bg-emerald-500/20 transition-all";
           statusBadge.innerHTML = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live Supabase';
         }
       }
@@ -2329,6 +2423,68 @@
       }, 4000);
     }
   </script>
+
+  <!-- Supabase Database Settings Modal -->
+  <div id="db-settings-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="bg-[#0d1527] border border-slate-800 rounded-xl max-w-md w-full flex flex-col shadow-2xl overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="database" class="h-5 w-5 text-blue-400 shrink-0"></i>
+          <h3 class="font-bold text-sm text-white">Supabase Connection Settings</h3>
+        </div>
+        <button onclick="toggleDbSettingsDrawer(false)" class="text-slate-400 hover:text-white transition-all cursor-pointer">
+          <i data-lucide="x" class="h-5 w-5"></i>
+        </button>
+      </div>
+      
+      <!-- Modal Body -->
+      <div class="p-5 space-y-4">
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Provide your live Supabase credentials below to connect the app to your database. Credentials are saved securely to your browser's local storage.
+        </p>
+        
+        <div class="space-y-3">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Supabase Project URL</label>
+            <input 
+              type="text" 
+              id="settings-supabase-url-modal" 
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500" 
+              placeholder="https://your-project-id.supabase.co"
+            />
+          </div>
+          
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Supabase Anon Public API Key</label>
+            <input 
+              type="password" 
+              id="settings-supabase-key-modal" 
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500" 
+              placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            />
+          </div>
+        </div>
+
+        <div id="connection-test-result" class="hidden p-2.5 rounded text-[11px] font-mono border"></div>
+      </div>
+      
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-800 flex items-center justify-between gap-2 bg-slate-950/40">
+        <button onclick="clearDbSettings()" class="px-3 py-2 bg-slate-900 border border-slate-800 hover:border-rose-900 text-rose-400 hover:text-rose-300 font-bold rounded text-xs transition-all cursor-pointer">
+          Reset / Clear
+        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="testDbConnection()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded text-xs transition-all cursor-pointer flex items-center gap-1">
+            <i data-lucide="zap" class="h-3 w-3"></i> Test
+          </button>
+          <button onclick="saveDbSettings()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-lg">
+            <i data-lucide="save" class="h-3.5 w-3.5"></i> Save & Connect
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- SQL Schema Modal -->
   <div id="schema-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
