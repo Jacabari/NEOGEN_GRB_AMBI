@@ -92,21 +92,11 @@
           <h1 class="text-xl font-bold tracking-tight text-white">Neogen PH-GRB</h1>
           <span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 font-mono">Food Safety BI</span>
         </div>
-        <p class="text-xs text-slate-400">Account Mapping & Saturation Tracking Tool (Collaborative Sandbox)</p>
+        <p class="text-xs text-slate-400">Account Mapping & Saturation Tracking Tool (Live Production Mode)</p>
       </div>
     </div>
 
     <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-      <!-- Database Settings Button -->
-      <button 
-        onclick="toggleDbSettingsDrawer(true)"
-        class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all duration-200 cursor-pointer bg-slate-900 border-slate-800 hover:border-yellow-500/40 text-slate-300"
-        id="db-status-badge"
-      >
-        <i data-lucide="database" class="h-3 w-3"></i>
-        <span>Database: <strong id="db-status-text" class="text-amber-400">Loading...</strong></span>
-        <i data-lucide="settings" class="h-3 w-3 ml-1"></i>
-      </button>
 
       <!-- Collaborative Editor Profile Card -->
       <div class="flex items-center gap-3 bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-1.5">
@@ -732,69 +722,9 @@
     </main>
   </div>
 
-  <!-- 4. SLIDE-OUT DATABASE CONFIGURATION DRAWER -->
-  <div id="db-settings-drawer" class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-[#0d1527] border-l border-slate-800 shadow-2xl p-6 flex flex-col gap-5 transform translate-x-full transition-transform duration-300 ease-in-out">
-    
-    <div class="flex items-center justify-between border-b border-slate-800 pb-4">
-      <div class="flex items-center gap-2">
-        <i data-lucide="database" class="h-5 w-5 text-yellow-400"></i>
-        <h3 class="text-base font-bold text-white">Database Settings</h3>
-      </div>
-      <button onclick="toggleDbSettingsDrawer(false)" class="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white cursor-pointer">
-        <i data-lucide="x" class="h-5 w-5"></i>
-      </button>
-    </div>
-
-    <div class="space-y-4 text-xs">
-      <p class="text-slate-400 leading-relaxed">
-        Connect this single-page dashboard directly to your Supabase instance. Once saved, all mappings, edits, and parameters will instantly sync live to the database for any coworker accessing this link.
-      </p>
-
-      <div class="p-3 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded-lg space-y-1">
-        <strong class="block">Offline Sandbox Active</strong>
-        <span>If left empty, all mapped records are stored locally in your browser sandbox, allowing full dashboard editing capability out of the box.</span>
-      </div>
-
-      <div class="space-y-3 pt-2">
-        <div>
-          <label class="block text-slate-400 mb-1">Supabase API Endpoint URL</label>
-          <input 
-            type="text" 
-            id="settings-supabase-url" 
-            placeholder="https://xyzabcdefghijklm.supabase.co" 
-            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-yellow-400"
-          />
-        </div>
-        <div>
-          <label class="block text-slate-400 mb-1">Supabase Anon API Key</label>
-          <input 
-            type="password" 
-            id="settings-supabase-key" 
-            placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." 
-            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-yellow-400"
-          />
-        </div>
-      </div>
-    </div>
-
-    <div class="mt-auto space-y-2 pt-4 border-t border-slate-800">
-      <button 
-        onclick="saveDbSettings()"
-        class="w-full bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-bold py-2.5 rounded-lg hover:brightness-110 active:scale-95 transition-all text-xs flex items-center justify-center gap-1.5 cursor-pointer"
-      >
-        <i data-lucide="check" class="h-4 w-4"></i> Save & Connect Database
-      </button>
-      <button 
-        onclick="clearDbSettings()"
-        class="w-full bg-slate-950 border border-slate-800 text-slate-400 py-2 rounded-lg hover:text-white transition-all text-xs flex items-center justify-center gap-1 cursor-pointer"
-      >
-        Reset to Sandbox/Offline Mode
-      </button>
-    </div>
-  </div>
-
-  <!-- Backdrop overlay -->
-  <div id="drawer-backdrop" onclick="toggleDbSettingsDrawer(false)" class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm hidden"></div>
+  <!-- Hidden production database settings references to prevent DOM selector exceptions -->
+  <input type="hidden" id="settings-supabase-url" />
+  <input type="hidden" id="settings-supabase-key" />
 
 
   <!-- ======================================================== -->
@@ -928,144 +858,86 @@
     // DATABASE CONNECTION & MANAGEMENT
     // -----------------------------------------------------------------
     function initSupabaseConnection() {
-      const url = localStorage.getItem('NEOGEN_SUPABASE_URL') || '';
-      const key = localStorage.getItem('NEOGEN_SUPABASE_ANON_KEY') || '';
+      let url = '';
+      let key = '';
 
-      document.getElementById('settings-supabase-url').value = url;
-      document.getElementById('settings-supabase-key').value = key;
+      // Try loading standard environment variables (Vite-specific)
+      try {
+        url = import.meta.env.VITE_SUPABASE_URL;
+        key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      } catch (e) {}
 
-      const badge = document.getElementById('db-status-badge');
-      const text = document.getElementById('db-status-text');
+      // Fallback/Check process.env if available
+      if (!url || !key) {
+        try {
+          url = process.env.VITE_SUPABASE_URL;
+          key = process.env.VITE_SUPABASE_ANON_KEY;
+        } catch (e) {}
+      }
+
+      // Fallback only if env vars are empty/placeholder to whatever localstorage contains
+      if (!url || url === 'MY_SUPABASE_URL') {
+        url = localStorage.getItem('NEOGEN_SUPABASE_URL') || '';
+      }
+      if (!key || key === 'MY_SUPABASE_ANON_KEY') {
+        key = localStorage.getItem('NEOGEN_SUPABASE_ANON_KEY') || '';
+      }
+
+      const urlInput = document.getElementById('settings-supabase-url');
+      const keyInput = document.getElementById('settings-supabase-key');
+      if (urlInput) urlInput.value = url;
+      if (keyInput) keyInput.value = key;
 
       if (url && key && url !== 'MY_SUPABASE_URL' && key !== 'MY_SUPABASE_ANON_KEY') {
         try {
           supabaseInstance = supabase.createClient(url, key);
-          text.innerText = 'Connected';
-          text.className = 'text-emerald-400';
-          badge.className = 'flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 transition-all cursor-pointer hover:bg-emerald-500/20';
+          console.log('Supabase client initialized successfully.');
         } catch (e) {
           console.error('Supabase connection failed:', e);
-          fallbackToSandbox();
         }
       } else {
-        fallbackToSandbox();
+        console.warn('Supabase URL or Key is missing. Live production mode is active but unconfigured.');
       }
     }
 
     function fallbackToSandbox() {
-      supabaseInstance = null;
-      const badge = document.getElementById('db-status-badge');
-      const text = document.getElementById('db-status-text');
-      text.innerText = 'Browser Sandbox';
-      text.className = 'text-amber-400';
-      badge.className = 'flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border bg-amber-500/10 border-amber-500/30 text-amber-400 transition-all cursor-pointer hover:bg-amber-500/20';
+      console.warn('Sandbox fallback is disabled in live production mode.');
     }
 
     function toggleDbSettingsDrawer(show) {
-      const drawer = document.getElementById('db-settings-drawer');
-      const backdrop = document.getElementById('drawer-backdrop');
-      if (show) {
-        drawer.classList.remove('translate-x-full');
-        backdrop.classList.remove('hidden');
-      } else {
-        drawer.classList.add('translate-x-full');
-        backdrop.classList.add('hidden');
-      }
+      console.warn('Database settings drawer is disabled in live production mode.');
     }
 
-    function saveDbSettings() {
-      const url = document.getElementById('settings-supabase-url').value.trim();
-      const key = document.getElementById('settings-supabase-key').value.trim();
-
-      if (!url || !key) {
-        showToast('Please enter both Supabase URL and Anon API key.', 'error');
-        return;
-      }
-
-      localStorage.setItem('NEOGEN_SUPABASE_URL', url);
-      localStorage.setItem('NEOGEN_SUPABASE_ANON_KEY', key);
-
-      initSupabaseConnection();
-      toggleDbSettingsDrawer(false);
-      showToast('Database credentials updated! Fetching records...', 'success');
-      loadAllData();
-    }
-
-    function clearDbSettings() {
-      localStorage.removeItem('NEOGEN_SUPABASE_URL');
-      localStorage.removeItem('NEOGEN_SUPABASE_ANON_KEY');
-      document.getElementById('settings-supabase-url').value = '';
-      document.getElementById('settings-supabase-key').value = '';
-
-      fallbackToSandbox();
-      toggleDbSettingsDrawer(false);
-      showToast('Returned to Offline Sandbox Mode.', 'info');
-      loadAllData();
-    }
+    function saveDbSettings() {}
+    function clearDbSettings() {}
 
     // -----------------------------------------------------------------
     // DATA LAYER & CRUD LOGIC (REQ-001 / REQ-002)
     // -----------------------------------------------------------------
     async function loadAllData() {
       try {
-        if (supabaseInstance) {
-          // Fetch from live database
-          const { data: list, error } = await supabaseInstance
-            .from('accounts')
-            .select('*')
-            .order('account_name', { ascending: true });
-
-          if (error) throw error;
-          accounts = list || [];
-
-          const { data: indList } = await supabaseInstance.from('indicator_testing').select('*');
-          allIndicators = indList || [];
-
-          const { data: pathList } = await supabaseInstance.from('pathogen_testing').select('*');
-          allPathogens = pathList || [];
-
-          const { data: hygList } = await supabaseInstance.from('hygiene_toxins_water').select('*');
-          allHygiene = hygList || [];
-
-        } else {
-          // Fetch from localstorage sandbox
-          const sandboxAccounts = localStorage.getItem('SANDBOX_ACCOUNTS');
-          if (sandboxAccounts) {
-            accounts = JSON.parse(sandboxAccounts);
-          } else {
-            // Seed default mockup accounts for sandbox
-            accounts = [
-              {
-                id: 'acc-mock-1',
-                account_name: 'San Miguel Dairy Plant South',
-                parent_company: 'SMFI',
-                market_segment: 'Dairy',
-                geographic_area: 'South Luzon',
-                kam_name: 'Jared de Guzman',
-                rsm_name: 'Clarissa Reyes',
-                tam_name: 'Maria Clara',
-                created_at: new Date().toISOString()
-              },
-              {
-                id: 'acc-mock-2',
-                account_name: 'Universal Robina Corp - Cavite',
-                parent_company: 'URC',
-                market_segment: 'RTE',
-                geographic_area: 'South Luzon',
-                kam_name: 'Collaborative Editor',
-                rsm_name: 'Clarissa Reyes',
-                tam_name: 'Maria Clara',
-                created_at: new Date().toISOString()
-              }
-            ];
-            localStorage.setItem('SANDBOX_ACCOUNTS', JSON.stringify(accounts));
-          }
-
-          // Fetch mapping lists
-          allIndicators = JSON.parse(localStorage.getItem('SANDBOX_INDICATORS') || '[]');
-          allPathogens = JSON.parse(localStorage.getItem('SANDBOX_PATHOGENS') || '[]');
-          allHygiene = JSON.parse(localStorage.getItem('SANDBOX_HYGIENE') || '[]');
+        if (!supabaseInstance) {
+          showToast('Database connection missing. Live production mode requires valid environment variables.', 'error');
+          return;
         }
+
+        // Fetch from live database
+        const { data: list, error } = await supabaseInstance
+          .from('accounts')
+          .select('*')
+          .order('account_name', { ascending: true });
+
+        if (error) throw error;
+        accounts = list || [];
+
+        const { data: indList } = await supabaseInstance.from('indicator_testing').select('*');
+        allIndicators = indList || [];
+
+        const { data: pathList } = await supabaseInstance.from('pathogen_testing').select('*');
+        allPathogens = pathList || [];
+
+        const { data: hygList } = await supabaseInstance.from('hygiene_toxins_water').select('*');
+        allHygiene = hygList || [];
 
         renderAccountsList();
 
@@ -1084,8 +956,6 @@
       } catch (e) {
         console.error(e);
         showToast('Error syncing with live database: ' + e.message, 'error');
-        fallbackToSandbox();
-        loadAllData();
       }
     }
 
@@ -1227,26 +1097,22 @@
       };
 
       try {
-        if (supabaseInstance) {
-          const { data, error } = await supabaseInstance
-            .from('accounts')
-            .insert([newAcc])
-            .select()
-            .single();
-
-          if (error) throw error;
-          accounts.push(data);
-        } else {
-          accounts.push(newAcc);
-          localStorage.setItem('SANDBOX_ACCOUNTS', JSON.stringify(accounts));
+        if (!supabaseInstance) {
+          throw new Error("Live database connection is required to create a new account.");
         }
+
+        const { data, error } = await supabaseInstance
+          .from('accounts')
+          .insert([newAcc])
+          .select()
+          .single();
+
+        if (error) throw error;
+        accounts.push(data);
 
         selectedAccountId = newId;
         showToast('Created new account mapping successfully!', 'success');
         
-        // Seed blank matrices for this account
-        seedBlankSandboxMatrices(newId);
-
         await loadAllData();
         selectAccount(newId);
         setWizardStep(1); // Start at profile card
@@ -1267,27 +1133,17 @@
       }
 
       try {
-        if (supabaseInstance) {
-          // Relational CASCADE setup will trigger cleanups if set, else clean tables manually
-          await supabaseInstance.from('indicator_testing').delete().eq('account_id', selectedAccountId);
-          await supabaseInstance.from('pathogen_testing').delete().eq('account_id', selectedAccountId);
-          await supabaseInstance.from('hygiene_toxins_water').delete().eq('account_id', selectedAccountId);
-          
-          const { error } = await supabaseInstance.from('accounts').delete().eq('id', selectedAccountId);
-          if (error) throw error;
-        } else {
-          accounts = accounts.filter(a => a.id !== selectedAccountId);
-          localStorage.setItem('SANDBOX_ACCOUNTS', JSON.stringify(accounts));
-
-          // Clean local states
-          allIndicators = allIndicators.filter(i => i.account_id !== selectedAccountId);
-          allPathogens = allPathogens.filter(p => p.account_id !== selectedAccountId);
-          allHygiene = allHygiene.filter(h => h.account_id !== selectedAccountId);
-
-          localStorage.setItem('SANDBOX_INDICATORS', JSON.stringify(allIndicators));
-          localStorage.setItem('SANDBOX_PATHOGENS', JSON.stringify(allPathogens));
-          localStorage.setItem('SANDBOX_HYGIENE', JSON.stringify(allHygiene));
+        if (!supabaseInstance) {
+          throw new Error("Live database connection is required to delete an account.");
         }
+
+        // Relational CASCADE setup will trigger cleanups if set, else clean tables manually
+        await supabaseInstance.from('indicator_testing').delete().eq('account_id', selectedAccountId);
+        await supabaseInstance.from('pathogen_testing').delete().eq('account_id', selectedAccountId);
+        await supabaseInstance.from('hygiene_toxins_water').delete().eq('account_id', selectedAccountId);
+        
+        const { error } = await supabaseInstance.from('accounts').delete().eq('id', selectedAccountId);
+        if (error) throw error;
 
         showToast('Account record deleted successfully.', 'info');
         selectedAccountId = null;
