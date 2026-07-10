@@ -24,6 +24,15 @@
       }
     }
   </script>
+  <!-- Pre-load environment variables safely in module scope -->
+  <script type="module">
+    try {
+      window.__VITE_SUPABASE_URL__ = import.meta.env.VITE_SUPABASE_URL;
+      window.__VITE_SUPABASE_ANON_KEY__ = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    } catch (e) {
+      console.warn("Vite environment variables not found in module scope:", e);
+    }
+  </script>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -126,6 +135,19 @@
       </div>
     </div>
   </header>
+
+  <!-- Supabase Schema Warning Banner -->
+  <div id="supabase-setup-warning" class="hidden bg-amber-500/10 border-b border-amber-500/30 px-6 py-2.5 flex items-center justify-between text-xs text-amber-200">
+    <div class="flex items-center gap-2.5">
+      <i data-lucide="alert-triangle" class="h-4 w-4 text-amber-400 shrink-0"></i>
+      <span>
+        <strong>Supabase tables are missing or unreachable.</strong> The app is running in Local Sandbox Mode fallback with mock data. Please run the <code class="bg-amber-950/50 text-amber-300 px-1 py-0.5 rounded font-mono">supabase_schema.sql</code> script in your Supabase SQL Editor.
+      </span>
+    </div>
+    <button onclick="toggleSchemaModal(true)" class="text-[10px] font-bold bg-amber-500 text-slate-950 hover:brightness-110 px-2.5 py-1 rounded transition-all cursor-pointer">
+      Get SQL Script
+    </button>
+  </div>
 
   <!-- Notification Banner -->
   <div id="toast-container" class="fixed top-20 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
@@ -858,14 +880,8 @@
     // DATABASE CONNECTION & MANAGEMENT
     // -----------------------------------------------------------------
     function initSupabaseConnection() {
-      let url = '';
-      let key = '';
-
-      // Try loading standard environment variables (Vite-specific)
-      try {
-        url = import.meta.env.VITE_SUPABASE_URL;
-        key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      } catch (e) {}
+      let url = window.__VITE_SUPABASE_URL__ || '';
+      let key = window.__VITE_SUPABASE_ANON_KEY__ || '';
 
       // Fallback/Check process.env if available
       if (!url || !key) {
@@ -901,7 +917,7 @@
     }
 
     function fallbackToSandbox() {
-      console.warn('Sandbox fallback is disabled in live production mode.');
+      console.warn('Sandbox fallback is active.');
     }
 
     function toggleDbSettingsDrawer(show) {
@@ -911,85 +927,268 @@
     function saveDbSettings() {}
     function clearDbSettings() {}
 
+    function toggleSchemaModal(show) {
+      const modal = document.getElementById('schema-modal');
+      if (modal) {
+        if (show) {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+        } else {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
+      }
+    }
+
+    function copySQLCode() {
+      const pre = document.getElementById('sql-code');
+      if (pre) {
+        navigator.clipboard.writeText(pre.textContent).then(() => {
+          showToast('SQL script copied to clipboard!', 'success');
+        }).catch(err => {
+          showToast('Failed to copy text: ' + err, 'error');
+        });
+      }
+    }
+
+    function initializeDefaultMockData() {
+      console.log("Initializing rich default mock database for Philippines Food Safety BI...");
+      const mockAccounts = [
+        {
+          id: 'acc-smfi-mariveles',
+          account_name: 'San Miguel Foods - Mariveles Poultry Facility',
+          parent_company: 'SMFI',
+          market_segment: 'Meat and Poultry',
+          geographic_area: 'South Luzon',
+          kam_name: 'Collaborative Editor',
+          rsm_name: 'Clarissa Reyes',
+          tam_name: 'Maria Clara',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'acc-urc-pasig',
+          account_name: 'Universal Robina - Pasig RTE Plant',
+          parent_company: 'URC',
+          market_segment: 'RTE',
+          geographic_area: 'North Luzon',
+          kam_name: 'Collaborative Editor',
+          rsm_name: 'Clarissa Reyes',
+          tam_name: 'Maria Clara',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'acc-century-gensan',
+          account_name: 'Century Pacific - GenSan Canning Facility',
+          parent_company: 'Century Pacific',
+          market_segment: 'Ingredients',
+          geographic_area: 'Mindanao',
+          kam_name: 'John Doe',
+          rsm_name: 'Clarissa Reyes',
+          tam_name: 'Maria Clara',
+          created_at: new Date().toISOString()
+        }
+      ];
+
+      localStorage.setItem('MOCK_ACCOUNTS', JSON.stringify(mockAccounts));
+      localStorage.setItem('SANDBOX_ACCOUNTS', JSON.stringify(mockAccounts));
+
+      // Generate seed matrices for these mock accounts
+      let seedIndicators = [];
+      let seedPathogens = [];
+      let seedHygiene = [];
+
+      mockAccounts.forEach(acc => {
+        // Indicators
+        INDICATOR_TARGETS.forEach(target => {
+          const neogen_qty = Math.floor(Math.random() * 400) + 120;
+          const method_2_qty = Math.floor(Math.random() * 250);
+          const method_3_qty = Math.floor(Math.random() * 80);
+          seedIndicators.push({
+            id: generateUUID(),
+            account_id: acc.id,
+            target_name: target,
+            source_type: Math.random() > 0.5 ? 'Food-Related' : 'Environmental',
+            neogen_method: 'Petrifilm',
+            neogen_qty: neogen_qty,
+            method_2_competitor_name: 'Competitor Plate',
+            method_2_qty: method_2_qty,
+            method_3_competitor_name: 'Competitor Film',
+            method_3_qty: method_3_qty,
+            calculated_subtotal: (neogen_qty * PRICES.indicatorNeogen) + ((method_2_qty + method_3_qty) * PRICES.indicatorComp)
+          });
+        });
+
+        // Pathogens
+        PATHOGEN_TARGETS.forEach(target => {
+          const volume_qty = Math.floor(Math.random() * 220) + 60;
+          const competitor_qty = Math.floor(Math.random() * 120);
+          seedPathogens.push({
+            id: generateUUID(),
+            account_id: acc.id,
+            target_name: target,
+            core_technology: 'MDS/MDA2',
+            volume_qty: volume_qty,
+            competitor_tech: 'ELISA Plates',
+            competitor_qty: competitor_qty,
+            calculated_subtotal: (volume_qty * PRICES.pathogenNeogen) + (competitor_qty * PRICES.pathogenComp)
+          });
+        });
+
+        // Hygiene
+        const atp_qty = Math.floor(Math.random() * 320) + 110;
+        const atp_competitor_qty = Math.floor(Math.random() * 180);
+        const atp_subtotal = (atp_qty * PRICES.atpNeogen) + (atp_competitor_qty * PRICES.atpComp);
+
+        const allergen_qty = Math.floor(Math.random() * 140) + 40;
+        const allergen_competitor_qty = Math.floor(Math.random() * 90);
+        const allergen_subtotal = (allergen_qty * PRICES.allergenNeogen) + (allergen_competitor_qty * PRICES.allergenComp);
+
+        const water_fqna_qty = Math.floor(Math.random() * 90) + 30;
+        const water_fqna_competitor_qty = Math.floor(Math.random() * 60);
+        const water_fqna_subtotal = (water_fqna_qty * PRICES.waterNeogen) + (water_fqna_competitor_qty * PRICES.waterComp);
+
+        seedHygiene.push({
+          id: generateUUID(),
+          account_id: acc.id,
+          atp_platform: 'AccuPoint NG',
+          atp_qty: atp_qty,
+          atp_competitor_platform: 'Hygiena Platform',
+          atp_competitor_qty: atp_competitor_qty,
+          atp_subtotal: atp_subtotal,
+          allergen_variant: 'Gluten',
+          allergen_qty: allergen_qty,
+          allergen_competitor_platform: 'Reveal Allergen',
+          allergen_competitor_qty: allergen_competitor_qty,
+          allergen_subtotal: allergen_subtotal,
+          water_fqna_details: 'FQNA Water Processing Parameters',
+          water_fqna_qty: water_fqna_qty,
+          water_fqna_competitor_qty: water_fqna_competitor_qty,
+          water_fqna_subtotal: water_fqna_subtotal
+        });
+      });
+
+      localStorage.setItem('SANDBOX_INDICATORS', JSON.stringify(seedIndicators));
+      localStorage.setItem('SANDBOX_PATHOGENS', JSON.stringify(seedPathogens));
+      localStorage.setItem('SANDBOX_HYGIENE', JSON.stringify(seedHygiene));
+    }
+
     // -----------------------------------------------------------------
     // DATA LAYER & CRUD LOGIC (REQ-001 / REQ-002)
     // -----------------------------------------------------------------
     async function loadAllData() {
+      let isDbError = false;
+      let dbErrorCount = 0;
+
       try {
         if (!supabaseInstance) {
-          showToast('Database connection missing. Live production mode requires valid environment variables.', 'error');
-          return;
-        }
+          console.warn('Supabase instance not initialized. Falling back to local sandbox mode.');
+          isDbError = true;
+        } else {
+          // Fetch accounts from live database with individual try-catch for extreme resilience
+          try {
+            const { data: list, error } = await supabaseInstance
+              .from('accounts')
+              .select('*')
+              .order('account_name', { ascending: true });
 
-        // Fetch accounts from live database with individual try-catch for extreme resilience
-        try {
-          const { data: list, error } = await supabaseInstance
-            .from('accounts')
-            .select('*')
-            .order('account_name', { ascending: true });
+            if (error) throw error;
+            accounts = list || [];
+          } catch (err) {
+            console.error("Supabase Error fetching accounts in loadAllData:", err);
+            dbErrorCount++;
+            isDbError = true;
+          }
 
-          if (error) throw error;
-          accounts = list || [];
-        } catch (err) {
-          console.error("Supabase Error fetching accounts in loadAllData:", err);
-          showToast('Failed to fetch accounts: ' + err.message, 'error');
-          accounts = [];
-        }
+          // Fetch indicator_testing with individual try-catch
+          try {
+            const { data: indList, error: indError } = await supabaseInstance.from('indicator_testing').select('*');
+            if (indError) throw indError;
+            allIndicators = indList || [];
+          } catch (err) {
+            console.error("Supabase Error fetching indicator_testing in loadAllData:", err);
+            dbErrorCount++;
+            isDbError = true;
+          }
 
-        // Fetch indicator_testing with individual try-catch
-        try {
-          const { data: indList, error: indError } = await supabaseInstance.from('indicator_testing').select('*');
-          if (indError) throw indError;
-          allIndicators = indList || [];
-        } catch (err) {
-          console.error("Supabase Error fetching indicator_testing in loadAllData:", err);
-          allIndicators = [];
-        }
+          // Fetch pathogen_testing with individual try-catch
+          try {
+            const { data: pathList, error: pathError } = await supabaseInstance.from('pathogen_testing').select('*');
+            if (pathError) throw pathError;
+            allPathogens = pathList || [];
+          } catch (err) {
+            console.error("Supabase Error fetching pathogen_testing in loadAllData:", err);
+            dbErrorCount++;
+            isDbError = true;
+          }
 
-        // Fetch pathogen_testing with individual try-catch
-        try {
-          const { data: pathList, error: pathError } = await supabaseInstance.from('pathogen_testing').select('*');
-          if (pathError) throw pathError;
-          allPathogens = pathList || [];
-        } catch (err) {
-          console.error("Supabase Error fetching pathogen_testing in loadAllData:", err);
-          allPathogens = [];
-        }
-
-        // Fetch hygiene_toxins_water with individual try-catch
-        try {
-          const { data: hygList, error: hygError } = await supabaseInstance.from('hygiene_toxins_water').select('*');
-          if (hygError) throw hygError;
-          allHygiene = hygList || [];
-        } catch (err) {
-          console.error("Supabase Error fetching hygiene_toxins_water in loadAllData:", err);
-          allHygiene = [];
+          // Fetch hygiene_toxins_water with individual try-catch
+          try {
+            const { data: hygList, error: hygError } = await supabaseInstance.from('hygiene_toxins_water').select('*');
+            if (hygError) throw hygError;
+            allHygiene = hygList || [];
+          } catch (err) {
+            console.error("Supabase Error fetching hygiene_toxins_water in loadAllData:", err);
+            dbErrorCount++;
+            isDbError = true;
+          }
         }
 
       } catch (e) {
         console.error("Critical error in loadAllData:", e);
-        showToast('Error syncing with live database: ' + e.message, 'error');
-        accounts = accounts || [];
-        allIndicators = allIndicators || [];
-        allPathogens = allPathogens || [];
-        allHygiene = allHygiene || [];
-      } finally {
-        // Ensure UI render occurs even on total database/auth failure!
-        try {
-          renderAccountsList();
+        isDbError = true;
+      }
 
-          // Select first account if present and none selected
-          if (accounts && accounts.length > 0 && !selectedAccountId) {
-            selectAccount(accounts[0].id);
-          } else {
-            selectedAccountId = null;
-            updateWorkspaceVisibility();
-          }
-
-          recalculateBIAnalytics();
-        } catch (renderError) {
-          console.error("Error updating UI elements in loadAllData finally block:", renderError);
+      // If we got DB errors (meaning tables do not exist in the user's Supabase yet) 
+      // or if we have absolutely 0 accounts mapped (empty database), let's fallback to Local Sandbox mock data
+      if (isDbError || (accounts && accounts.length === 0)) {
+        console.warn("Switching to Local Sandbox fallback storage mode.");
+        
+        // Show setup warning banner if tables are missing
+        const warningBanner = document.getElementById('supabase-setup-warning');
+        if (warningBanner && dbErrorCount > 0) {
+          warningBanner.classList.remove('hidden');
         }
+
+        // Initialize local mock accounts if empty
+        if (!localStorage.getItem('MOCK_ACCOUNTS') || JSON.parse(localStorage.getItem('MOCK_ACCOUNTS')).length === 0) {
+          initializeDefaultMockData();
+        }
+
+        try {
+          accounts = JSON.parse(localStorage.getItem('MOCK_ACCOUNTS') || '[]');
+          allIndicators = JSON.parse(localStorage.getItem('SANDBOX_INDICATORS') || '[]');
+          allPathogens = JSON.parse(localStorage.getItem('SANDBOX_PATHOGENS') || '[]');
+          allHygiene = JSON.parse(localStorage.getItem('SANDBOX_HYGIENE') || '[]');
+        } catch (e) {
+          console.error("Failed to parse fallback mock data:", e);
+        }
+      } else {
+        // If everything successfully loaded from Supabase, hide the warning banner
+        const warningBanner = document.getElementById('supabase-setup-warning');
+        if (warningBanner) {
+          warningBanner.classList.add('hidden');
+        }
+      }
+
+      // Ensure UI renders successfully
+      try {
+        renderAccountsList();
+
+        // Select first account if present and none selected
+        if (accounts && accounts.length > 0) {
+          if (selectedAccountId && accounts.some(a => a.id === selectedAccountId)) {
+            selectAccount(selectedAccountId);
+          } else {
+            selectAccount(accounts[0].id);
+          }
+        } else {
+          selectedAccountId = null;
+          updateWorkspaceVisibility();
+        }
+
+        recalculateBIAnalytics();
+      } catch (renderError) {
+        console.error("Error updating UI elements in loadAllData finally block:", renderError);
       }
     }
 
@@ -1143,7 +1342,19 @@
 
       try {
         if (!supabaseInstance) {
-          throw new Error("Live database connection is required to create a new account.");
+          // Local/Sandbox Insert
+          accounts.push(newAcc);
+          localStorage.setItem('MOCK_ACCOUNTS', JSON.stringify(accounts));
+          localStorage.setItem('SANDBOX_ACCOUNTS', JSON.stringify(accounts));
+          
+          seedBlankSandboxMatrices(newId);
+          selectedAccountId = newId;
+          showToast('Created new account successfully (Local Sandbox)!', 'success');
+
+          renderAccountsList();
+          selectAccount(newId);
+          setWizardStep(1); // Start at profile card
+          return;
         }
 
         const { data, error } = await supabaseInstance
@@ -1179,7 +1390,24 @@
 
       try {
         if (!supabaseInstance) {
-          throw new Error("Live database connection is required to delete an account.");
+          // Local/Sandbox Delete
+          allIndicators = allIndicators.filter(i => i.account_id !== selectedAccountId);
+          allPathogens = allPathogens.filter(p => p.account_id !== selectedAccountId);
+          allHygiene = allHygiene.filter(h => h.account_id !== selectedAccountId);
+          accounts = accounts.filter(a => a.id !== selectedAccountId);
+
+          localStorage.setItem('MOCK_ACCOUNTS', JSON.stringify(accounts));
+          localStorage.setItem('SANDBOX_ACCOUNTS', JSON.stringify(accounts));
+          localStorage.setItem('SANDBOX_INDICATORS', JSON.stringify(allIndicators));
+          localStorage.setItem('SANDBOX_PATHOGENS', JSON.stringify(allPathogens));
+          localStorage.setItem('SANDBOX_HYGIENE', JSON.stringify(allHygiene));
+
+          showToast('Account record deleted successfully (Local Sandbox).', 'info');
+          selectedAccountId = null;
+          renderAccountsList();
+          updateWorkspaceVisibility();
+          recalculateBIAnalytics();
+          return;
         }
 
         // Relational CASCADE setup will trigger cleanups if set, else clean tables manually
@@ -2084,5 +2312,144 @@
       }, 4000);
     }
   </script>
+
+  <!-- SQL Schema Modal -->
+  <div id="schema-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="bg-[#0d1527] border border-slate-800 rounded-xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+      <!-- Modal Header -->
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="database" class="h-5 w-5 text-amber-400 shrink-0"></i>
+          <h3 class="font-bold text-sm text-white">Supabase SQL DDL Schema Setup</h3>
+        </div>
+        <button onclick="toggleSchemaModal(false)" class="text-slate-400 hover:text-white transition-all cursor-pointer">
+          <i data-lucide="x" class="h-5 w-5"></i>
+        </button>
+      </div>
+      
+      <!-- Modal Body -->
+      <div class="p-4 overflow-y-auto space-y-3">
+        <p class="text-xs text-slate-400">
+          To set up your live database tables, copy the script below, go to your <strong>Supabase Dashboard &gt; SQL Editor &gt; New Query</strong>, paste the script, and click <strong>Run</strong>.
+        </p>
+        
+        <div class="relative">
+          <pre id="sql-code" class="bg-slate-950 p-4 rounded-lg border border-slate-800 text-[10px] text-emerald-400 font-mono overflow-x-auto max-h-[45vh] select-all">-- Enable UUID Extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Clean existing structures to prevent "already exists" conflicts
+DROP TABLE IF EXISTS public.hygiene_toxins_water CASCADE;
+DROP TABLE IF EXISTS public.pathogen_testing CASCADE;
+DROP TABLE IF EXISTS public.indicator_testing CASCADE;
+DROP TABLE IF EXISTS public.accounts CASCADE;
+
+-- 1. ACCOUNTS TABLE
+CREATE TABLE public.accounts (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    account_name TEXT UNIQUE NOT NULL,
+    parent_company TEXT NOT NULL CHECK (parent_company IN ('MVP Group', 'SMFI', 'URC', 'JFC', 'Century Pacific')),
+    market_segment TEXT NOT NULL CHECK (market_segment IN ('Produce', 'Dairy', 'RTE', 'Meat and Poultry', 'Ingredients', 'Contract Lab')),
+    geographic_area TEXT NOT NULL CHECK (geographic_area IN ('North Luzon', 'South Luzon', 'Visayas', 'Mindanao')),
+    kam_name TEXT,
+    rsm_name TEXT,
+    tam_name TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    created_by TEXT DEFAULT 'Collaborative Editor',
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow open public full access to accounts" ON public.accounts FOR ALL USING (true) WITH CHECK (true);
+
+-- 2. INDICATOR TESTING
+CREATE TABLE public.indicator_testing (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    account_id UUID REFERENCES public.accounts(id) ON DELETE CASCADE NOT NULL,
+    target_name TEXT NOT NULL CHECK (target_name IN (
+        'Total Plate Count (TPC)', 
+        'Coliforms', 
+        'Yeast & Mold', 
+        'Enterobacteriaceae', 
+        'E. coli (Generic)', 
+        'Staphylococcus aureus', 
+        'Bacillus cereus'
+    )),
+    source_type TEXT NOT NULL CHECK (source_type IN ('Food-Related', 'Environmental')),
+    neogen_method TEXT NOT NULL CHECK (neogen_method IN ('Petrifilm', 'Soleris NG', 'NCM', 'Compact Dry', 'Easy Plate')),
+    neogen_qty INTEGER DEFAULT 0 NOT NULL CHECK (neogen_qty >= 0),
+    method_2_competitor_name TEXT,
+    method_2_qty INTEGER DEFAULT 0 NOT NULL CHECK (method_2_qty >= 0),
+    method_3_competitor_name TEXT,
+    method_3_qty INTEGER DEFAULT 0 NOT NULL CHECK (method_3_qty >= 0),
+    calculated_subtotal INTEGER GENERATED ALWAYS AS (neogen_qty + method_2_qty + method_3_qty) STORED,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT unique_account_target UNIQUE (account_id, target_name)
+);
+
+ALTER TABLE public.indicator_testing ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow open public full access to indicator testing" ON public.indicator_testing FOR ALL USING (true) WITH CHECK (true);
+
+-- 3. PATHOGEN TESTING
+CREATE TABLE public.pathogen_testing (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    account_id UUID REFERENCES public.accounts(id) ON DELETE CASCADE NOT NULL,
+    target_name TEXT NOT NULL CHECK (target_name IN (
+        'Salmonella', 
+        'Listeria spp.', 
+        'Listeria monocytogenes', 
+        'E. coli O157:H7', 
+        'Campylobacter', 
+        'Cronobacter spp.', 
+        'Vibrio spp.'
+    )),
+    core_technology TEXT NOT NULL CHECK (core_technology IN ('MDS/MDA2', 'ANSR', 'Reveal', 'Culture Media')),
+    volume_qty INTEGER DEFAULT 0 NOT NULL CHECK (volume_qty >= 0),
+    competitor_tech TEXT,
+    competitor_qty INTEGER DEFAULT 0 NOT NULL CHECK (competitor_qty >= 0),
+    calculated_subtotal INTEGER GENERATED ALWAYS AS (volume_qty + competitor_qty) STORED,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT unique_account_pathogen UNIQUE (account_id, target_name)
+);
+
+ALTER TABLE public.pathogen_testing ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow open public full access to pathogen testing" ON public.pathogen_testing FOR ALL USING (true) WITH CHECK (true);
+
+-- 4. HYGIENE, TOXINS & WATER
+CREATE TABLE public.hygiene_toxins_water (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    account_id UUID REFERENCES public.accounts(id) ON DELETE CASCADE UNIQUE NOT NULL,
+    atp_platform TEXT CHECK (atp_platform IN ('AccuPoint NG', 'Clean-Trace', 'Hygiena')),
+    atp_qty INTEGER DEFAULT 0 NOT NULL CHECK (atp_qty >= 0),
+    atp_competitor_platform TEXT,
+    atp_competitor_qty INTEGER DEFAULT 0 NOT NULL CHECK (atp_competitor_qty >= 0),
+    atp_subtotal INTEGER GENERATED ALWAYS AS (atp_qty + atp_competitor_qty) STORED,
+    allergen_variant TEXT CHECK (allergen_variant IN ('Egg', 'Fish', 'Soy', 'Milk', 'Gluten', 'Aflatoxin')),
+    allergen_qty INTEGER DEFAULT 0 NOT NULL CHECK (allergen_qty >= 0),
+    allergen_competitor_platform TEXT,
+    allergen_competitor_qty INTEGER DEFAULT 0 NOT NULL CHECK (allergen_competitor_qty >= 0),
+    allergen_subtotal INTEGER GENERATED ALWAYS AS (allergen_qty + allergen_competitor_qty) STORED,
+    water_fqna_details TEXT,
+    water_fqna_qty INTEGER DEFAULT 0 NOT NULL CHECK (water_fqna_qty >= 0),
+    water_fqna_competitor_qty INTEGER DEFAULT 0 NOT NULL CHECK (water_fqna_competitor_qty >= 0),
+    water_fqna_subtotal INTEGER GENERATED ALWAYS AS (water_fqna_qty + water_fqna_competitor_qty) STORED,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.hygiene_toxins_water ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow open public full access to hygiene_toxins_water" ON public.hygiene_toxins_water FOR ALL USING (true) WITH CHECK (true);</pre>
+        </div>
+      </div>
+      
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-800 flex items-center justify-end gap-2 shrink-0">
+        <button onclick="copySQLCode()" class="px-4 py-2 bg-emerald-500 hover:brightness-110 text-slate-950 font-bold rounded text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-lg">
+          <i data-lucide="copy" class="h-3.5 w-3.5"></i> Copy SQL Script
+        </button>
+        <button onclick="toggleSchemaModal(false)" class="px-4 py-2 bg-slate-850 hover:bg-slate-800 text-slate-300 font-bold rounded text-xs transition-all cursor-pointer">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
